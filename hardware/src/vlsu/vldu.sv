@@ -37,6 +37,7 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
     input  logic             [NrVInsn-1:0] pe_vinsn_running_i,
     output logic                           pe_req_ready_o,
     output pe_resp_t                       pe_resp_o,
+    output logic                           ldu_current_burst_exception_o,
     // Interface with the address generator
     input  addrgen_axi_req_t               axi_addrgen_req_i,
     input  logic                           axi_addrgen_req_valid_i,
@@ -50,6 +51,8 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
     output strb_t            [NrLanes-1:0] ldu_result_be_o,
     input  logic             [NrLanes-1:0] ldu_result_gnt_i,
     input  logic             [NrLanes-1:0] ldu_result_final_gnt_i,
+    // LSU exception support
+    input  logic                           lsu_ex_flush_i,
     // Interface with the Mask unit
     input  strb_t            [NrLanes-1:0] mask_i,
     input  logic             [NrLanes-1:0] mask_valid_i,
@@ -73,13 +76,16 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
   pe_req_t vinsn_issue_d, vinsn_issue_q;
   logic vinsn_issue_valid;
 
+  // Flush support
+  logic lsu_ex_flush_q;
+
   for (genvar l = 0; l < NrLanes; l++) begin
     spill_register_flushable #(
       .T(strb_t)
     ) i_vldu_mask_register (
       .clk_i     (clk_i           ),
       .rst_ni    (rst_ni          ),
-      .flush_i   (1'b0            ),
+      .flush_i   (lsu_ex_flush_q  ),
       .data_o    (mask_q[l]       ),
       .valid_o   (mask_valid_q[l] ),
       .ready_i   (mask_ready_d    ),
@@ -240,9 +246,26 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
   // (8 * NrLanes) bytes.
   logic [$clog2(8*NrLanes):0] first_payload_byte_d, first_payload_byte_q;
   logic [$clog2(8*NrLanes):0] vrf_eff_write_bytes;
+  // Same thing, but for the commit (resqueue -> VRF)
+  // Track if this VRF write is the first one for this instruction
+  logic first_result_queue_read_d, first_result_queue_read_q;
+  logic [$clog2(8*NrLanes):0] res_queue_eff_write_bytes;
+
+  // Signal that the current burst is having an exception
+  logic ldu_current_burst_exception_d;
 
   // Counter to increase the VRF write address.
   vlen_t seq_word_wr_offset_d, seq_word_wr_offset_q;
+
+  // Exception handling FSM
+  // Needed because of the result queue buffer, which can contain partial
+  // results upon exception.
+  enum logic [1:0] {
+    IDLE,
+    VALID_RESULT_QUEUE,
+    WAIT_RESULT_QUEUE,
+    HANDLE_EXCEPTION
+  } ldu_ex_state_d, ldu_ex_state_q;
 
   localparam unsigned DataWidthB = DataWidth / 8;
 
@@ -277,6 +300,16 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
     axi_r_ready_o           = 1'b0;
     mask_ready_d            = 1'b0;
     load_complete_o         = 1'b0;
+
+    first_result_queue_read_d = first_result_queue_read_q;
+
+    ldu_ex_state_d = ldu_ex_state_q;
+
+    // Normally write multiple of resqueue width
+    vrf_eff_write_bytes       = (NrLanes * DataWidthB);
+    res_queue_eff_write_bytes = (NrLanes * DataWidthB);
+
+    ldu_current_burst_exception_d = 1'b0;
 
     // Inform the main sequencer if we are idle
     pe_req_ready_o = !vinsn_queue_full;
@@ -470,6 +503,13 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
       end : vrf_grant
     end: vrf_result_write
 
+    // How many result bytes can possibly be committed this cycle?
+    res_queue_eff_write_bytes = (NrLanes * DataWidthB);
+    // If vstart > 0, the first payload can contain less than (NrLanes * DataWidthB) Bytes
+    if (first_result_queue_read_q) begin
+      res_queue_eff_write_bytes = first_payload_byte_q;
+    end
+
     // All lanes accepted the VRF request
     // Wait for all the final grants, to be sure that all the results were written back
     if (!(|result_queue_valid_d[result_queue_read_pnt_q]) &&
@@ -487,8 +527,11 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
         // Decrement the counter of results waiting to be written
         result_queue_cnt_d -= 1;
 
+        // The next write will surely not be the first one anymore
+        first_result_queue_read_d = 1'b0;
+
         // Decrement the counter of remaining vector elements waiting to be written
-        commit_cnt_bytes_d = commit_cnt_bytes_q - (NrLanes * DataWidthB);
+        commit_cnt_bytes_d = commit_cnt_bytes_q - res_queue_eff_write_bytes;
         if (commit_cnt_bytes_q < (NrLanes * DataWidthB)) begin : commit_cnt_bytes_overflow
           commit_cnt_bytes_d = '0;
         end : commit_cnt_bytes_overflow
@@ -511,47 +554,80 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
         vinsn_queue_d.commit_pnt += 1;
 
       // Update the commit counter for the next instruction
-      if (vinsn_queue_d.commit_cnt != '0)
+      if (vinsn_queue_d.commit_cnt != '0) begin
+        first_result_queue_read_d = 1'b1;
         commit_cnt_bytes_d = (
                                vinsn_queue_q.vinsn[vinsn_queue_d.commit_pnt].vl
                                 - vinsn_queue_q.vinsn[vinsn_queue_d.commit_pnt].vstart
                               ) << unsigned'(vinsn_queue_q.vinsn[vinsn_queue_d.commit_pnt].vtype.vsew);
+      end
     end : vinsn_done
 
     /////////////////////////
     //  Handle exceptions  //
     /////////////////////////
 
-    // Clear instruction queue in case of exceptions from addrgen
-    if (vinsn_issue_valid && ((axi_addrgen_req_valid_i && axi_addrgen_req_i.is_exception) || addrgen_illegal_load_i)) begin : exception
-      // Signal done to sequencer
-      pe_resp_d.vinsn_done[vinsn_commit.id] = 1'b1;
+    // Handle exceptions in the clean way
+    // We cannot just abort the instruction since results can be in the result queue, waiting.
+    unique case (ldu_ex_state_q)
+      IDLE: begin
+        // Handle the exception only if this is the last instruction committing results
+        if (vinsn_issue_valid && (vinsn_queue_q.commit_cnt == 1) &&
+            ((axi_addrgen_req_valid_i && axi_addrgen_req_i.is_exception) || addrgen_illegal_load_i)) begin
+          ldu_ex_state_d = VALID_RESULT_QUEUE;
+        end
+      end
+      // Write the partial results to the VRF
+      VALID_RESULT_QUEUE: begin
+        ldu_ex_state_d = WAIT_RESULT_QUEUE;
+        // Send to the lanes what we had written in the resqueue before the exception.
+        // If this is empty, the byte-enalbe signals should be zero, so no write happens.
+        result_queue_valid_d[result_queue_write_pnt_q] |= {NrLanes{1'b1}};
+      end
+      // Wait until the resqueue is empty
+      WAIT_RESULT_QUEUE: begin
+        if (!(|result_queue_valid_q[result_queue_read_pnt_q])) begin
+          ldu_ex_state_d = HANDLE_EXCEPTION;
+        end
+      end
+      // Handle the exception
+      HANDLE_EXCEPTION: begin
+        ldu_ex_state_d = IDLE;
 
-      // Signal complete load
-      load_complete_o = 1'b1;
+        // Signal done to sequencer
+        pe_resp_d.vinsn_done[vinsn_commit.id] = 1'b1;
 
-      // Ack the addrgen for this last faulty request
-      axi_addrgen_req_ready_o = axi_addrgen_req_valid_i;
-      // Reset axi state
-      axi_len_d               = '0;
-      axi_r_byte_pnt_d        = '0;
+        // Signal complete load
+        load_complete_o = 1'b1;
 
-      // Update the commit counters and pointers
-      vinsn_queue_d.commit_cnt -= 1;
-      if (vinsn_queue_d.commit_pnt == VInsnQueueDepth-1)
-        vinsn_queue_d.commit_pnt = '0;
-      else
-        vinsn_queue_d.commit_pnt += 1;
+        // Reset axi state
+        axi_len_d        = '0;
+        axi_r_byte_pnt_d = '0;
 
-      // Increment vector instruction queue pointers and counters
-      vinsn_queue_d.issue_cnt -= 1;
-      if (vinsn_queue_q.issue_pnt == (VInsnQueueDepth-1)) begin : issue_pnt_overflow
-        vinsn_queue_d.issue_pnt = '0;
-      end : issue_pnt_overflow
-      else begin : issue_pnt_increment
-        vinsn_queue_d.issue_pnt += 1;
-      end : issue_pnt_increment
-    end : exception
+        // Ack the addrgen for this last faulty request
+        axi_addrgen_req_ready_o = axi_addrgen_req_valid_i;
+
+        // Abort the main sequencer -> operand-req request
+        ldu_current_burst_exception_d = 1'b1;
+
+        // Increment vector instruction queue pointers and counters
+        vinsn_queue_d.issue_cnt -= 1;
+        if (vinsn_queue_q.issue_pnt == (VInsnQueueDepth-1)) begin : issue_pnt_overflow
+          vinsn_queue_d.issue_pnt = '0;
+        end : issue_pnt_overflow
+        else begin : issue_pnt_increment
+          vinsn_queue_d.issue_pnt += 1;
+        end : issue_pnt_increment
+
+        // Update the commit counters and pointers
+        vinsn_queue_d.commit_cnt -= 1;
+        if (vinsn_queue_d.commit_pnt == VInsnQueueDepth-1)
+          vinsn_queue_d.commit_pnt = '0;
+        else
+          vinsn_queue_d.commit_pnt += 1;
+      end
+      default:;
+    endcase
 
     //////////////////////////////
     //  Accept new instruction  //
@@ -567,6 +643,7 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
         issue_cnt_bytes_d = (pe_req_i.vl - pe_req_i.vstart) << unsigned'(pe_req_i.vtype.vsew);
       end : issue_cnt_bytes_init
       if (vinsn_queue_d.commit_cnt == '0) begin : commit_cnt_bytes_init
+        first_result_queue_read_d = 1'b1;
         commit_cnt_bytes_d = (pe_req_i.vl - pe_req_i.vstart) << unsigned'(pe_req_i.vtype.vsew);
       end : commit_cnt_bytes_init
 
@@ -589,29 +666,37 @@ module vldu import ara_pkg::*; import rvv_pkg::*; #(
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
-      vinsn_running_q      <= '0;
-      issue_cnt_bytes_q    <= '0;
-      commit_cnt_bytes_q   <= '0;
-      axi_len_q            <= '0;
-      axi_r_byte_pnt_q     <= '0;
-      vrf_word_byte_pnt_q  <= '0;
-      pe_resp_o            <= '0;
-      result_final_gnt_q   <= '0;
-      seq_word_wr_offset_q <= '0;
-      first_payload_byte_q <= '0;
-      vrf_word_byte_cnt_q  <= '0;
+      vinsn_running_q               <= '0;
+      issue_cnt_bytes_q             <= '0;
+      commit_cnt_bytes_q            <= '0;
+      axi_len_q                     <= '0;
+      axi_r_byte_pnt_q              <= '0;
+      vrf_word_byte_pnt_q           <= '0;
+      pe_resp_o                     <= '0;
+      result_final_gnt_q            <= '0;
+      seq_word_wr_offset_q          <= '0;
+      first_payload_byte_q          <= '0;
+      vrf_word_byte_cnt_q           <= '0;
+      lsu_ex_flush_q                <= lsu_ex_flush_i;
+      ldu_current_burst_exception_o <= 1'b0;
+      ldu_ex_state_q                <= IDLE;
+      first_result_queue_read_q     <= 1'b0;
     end else begin
-      vinsn_running_q      <= vinsn_running_d;
-      issue_cnt_bytes_q    <= issue_cnt_bytes_d;
-      commit_cnt_bytes_q   <= commit_cnt_bytes_d;
-      axi_len_q            <= axi_len_d;
-      axi_r_byte_pnt_q     <= axi_r_byte_pnt_d;
-      vrf_word_byte_pnt_q  <= vrf_word_byte_pnt_d;
-      pe_resp_o            <= pe_resp_d;
-      result_final_gnt_q   <= result_final_gnt_d;
-      seq_word_wr_offset_q <= seq_word_wr_offset_d;
-      first_payload_byte_q <= first_payload_byte_d;
-      vrf_word_byte_cnt_q  <= vrf_word_byte_cnt_d;
+      vinsn_running_q               <= vinsn_running_d;
+      issue_cnt_bytes_q             <= issue_cnt_bytes_d;
+      commit_cnt_bytes_q            <= commit_cnt_bytes_d;
+      axi_len_q                     <= axi_len_d;
+      axi_r_byte_pnt_q              <= axi_r_byte_pnt_d;
+      vrf_word_byte_pnt_q           <= vrf_word_byte_pnt_d;
+      pe_resp_o                     <= pe_resp_d;
+      result_final_gnt_q            <= result_final_gnt_d;
+      seq_word_wr_offset_q          <= seq_word_wr_offset_d;
+      first_payload_byte_q          <= first_payload_byte_d;
+      vrf_word_byte_cnt_q           <= vrf_word_byte_cnt_d;
+      lsu_ex_flush_q                <= lsu_ex_flush_i;
+      ldu_current_burst_exception_o <= ldu_current_burst_exception_d;
+      ldu_ex_state_q                <= ldu_ex_state_d;
+      first_result_queue_read_q     <= first_result_queue_read_d;
     end
   end
 

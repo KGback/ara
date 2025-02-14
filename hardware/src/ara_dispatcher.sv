@@ -41,6 +41,9 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
     // Interface with the lanes
     input  logic              [NrLanes-1:0][4:0] fflags_ex_i,
     input  logic              [NrLanes-1:0]      fflags_ex_valid_i,
+    // LSU exception-related flush support
+    output logic                                 lsu_ex_flush_o,
+    input  logic                                 lsu_ex_flush_done_i,
     // Rounding mode is shared between all lanes
     input  logic              [NrLanes-1:0]      vxsat_flag_i,
     output vxrm_t             [NrLanes-1:0]      alu_vxrm_o,
@@ -141,6 +144,7 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
   typedef enum logic [1:0] {
     NORMAL_OPERATION,
     WAIT_IDLE,
+    WAIT_IDLE_FLUSH,
     RESHUFFLE
   } state_e;
   state_e state_d, state_q, state_qq;
@@ -289,6 +293,54 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
     .ara_resp_valid_o(ara_resp_valid)
   );
 
+  // LSU exception flush FSM
+  // Upon exception, Ara should be flushed as soon as no operations older than the store are ongoing.
+  // For this reason, we should first wait until Ara is idle. Then, we can flush.
+  // Flushes are needed after a faulty memory operation. Even loads need a flush if they access the VRF.
+  logic lsu_ex_flush_start, lsu_ex_flush_done, lsu_ex_flush_done_q;
+  typedef enum logic [1:0] {
+    LSU_FLUSH_IDLE,
+    LSU_FLUSH,
+    LSU_FLUSH_WAIT,
+    LSU_FLUSH_DONE
+  } lsu_ex_flush_fsm_e;
+  lsu_ex_flush_fsm_e lsu_ex_state_d, lsu_ex_state_q;
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      lsu_ex_state_q <= LSU_FLUSH_IDLE;
+      lsu_ex_flush_done_q  <= 1'b0;
+    end else begin
+      lsu_ex_state_q <= lsu_ex_state_d;
+      lsu_ex_flush_done_q  <= lsu_ex_flush_done_i;
+    end
+  end
+
+  always_comb begin : i_lsu_ex_flush_fsm
+    lsu_ex_state_d = lsu_ex_state_q;
+    lsu_ex_flush_o = 1'b0;
+    lsu_ex_flush_done = 1'b0;
+
+    case (lsu_ex_state_q)
+      LSU_FLUSH_IDLE: begin
+        if (lsu_ex_flush_start)
+          lsu_ex_state_d = LSU_FLUSH;
+      end
+      LSU_FLUSH: begin
+        lsu_ex_flush_o = 1'b1;
+          lsu_ex_state_d = LSU_FLUSH_WAIT;
+      end
+      LSU_FLUSH_WAIT: begin
+        if (lsu_ex_flush_done_q)
+          lsu_ex_state_d = LSU_FLUSH_DONE;
+      end
+      LSU_FLUSH_DONE: begin
+        lsu_ex_flush_done = 1'b1;
+        lsu_ex_state_d = LSU_FLUSH_IDLE;
+      end
+    endcase
+  end
+
   ///////////////
   //  Decoder  //
   ///////////////
@@ -333,6 +385,8 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
 
     skip_lmul_checks     = 1'b0;
 
+    lsu_ex_flush_start = 1'b0;
+
     null_vslideup = 1'b0;
 
     vfmvfs_result = ara_resp_i.resp;
@@ -362,10 +416,15 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
       vtype        : csr_vtype_q,
       emul         : csr_vtype_q.vlmul,
       eew_vs1      : csr_vtype_q.vsew,
+      old_eew_vs1  : csr_vtype_q.vsew,
       eew_vs2      : csr_vtype_q.vsew,
       eew_vd_op    : csr_vtype_q.vsew,
       eew_vmask    : eew_q[VMASK],
       cvt_resize   : CVT_SAME,
+      fp_rm          : fpnew_pkg::RNE,
+      op             : VADD,
+      conversion_vs1 : OpQueueConversionNone,
+      conversion_vs2 : OpQueueConversionNone,
       default      : '0
     };
     ara_req_valid = 1'b0;
@@ -384,6 +443,19 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
       // Is Ara idle?
       WAIT_IDLE: begin
         if (ara_idle_i) state_d = NORMAL_OPERATION;
+      end
+
+      // Wait for idle and then flush the stu-related pipes.
+      // This operation is not IPC critical.
+      WAIT_IDLE_FLUSH: begin
+        if ((lsu_ex_state_q == LSU_FLUSH_IDLE) && ara_idle_i) begin
+          // Start the flush FSM
+          lsu_ex_flush_start = 1'b1;
+        end
+        // Get back to normal operation once the flush is over
+        if (lsu_ex_state_q == LSU_FLUSH_DONE) begin
+          state_d = NORMAL_OPERATION;
+        end
       end
 
       // Inject a reshuffle instruction
@@ -2465,9 +2537,11 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
                     endcase
                   end
 
-                  // Ara can support 16-bit float, 32-bit float, 64-bit float.
+                  // Ara can support 8-bit float, 16-bit float, 32-bit float, 64-bit float.
                   // Ara cannot support instructions who operates on more than 64 bits.
                   unique case (FPUSupport)
+                    FPUSupportAll: if (int'(csr_vtype_q.vsew) > int'(EW64) || int'(ara_req.eew_vs2) > int'(EW64))
+                          illegal_insn = 1'b1;
                     FPUSupportHalfSingleDouble: if (int'(csr_vtype_q.vsew) < int'(EW16) ||
                           int'(csr_vtype_q.vsew) > int'(EW64) || int'(ara_req.eew_vs2) > int'(EW64))
                           illegal_insn = 1'b1;
@@ -2753,6 +2827,7 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
                   // Ara can support 16-bit float, 32-bit float, 64-bit float.
                   // Ara cannot support instructions who operates on more than 64 bits.
                   unique case (FPUSupport)
+                    FPUSupportAll: if (int'(csr_vtype_q.vsew) > int'(EW64)) illegal_insn = 1'b1;
                     FPUSupportHalfSingleDouble: if (int'(csr_vtype_q.vsew) < int'(EW16) ||
                           int'(csr_vtype_q.vsew) > int'(EW64)) illegal_insn = 1'b1;
                     FPUSupportHalfSingle: if (int'(csr_vtype_q.vsew) < int'(EW16) ||
@@ -3001,8 +3076,16 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
                 // Mask exception if we had a fault-only-first with exception on
                 // idx > 0
                 acc_resp_o.exception.valid = 1'b0;
+                // Flush if mask reg was involved in the fof operation
+                if (!ara_req.vm) begin
+                  state_d = WAIT_IDLE_FLUSH;
+                end
               end else if (ara_resp.exception.valid) begin
                 csr_vstart_d = ara_resp.exception_vstart;
+                // If this load has VRF source operands, flush everything
+                if (!ara_req.vm || ara_req.use_vs2) begin
+                  state_d = WAIT_IDLE_FLUSH;
+                end
               end
             end
           end
@@ -3234,10 +3317,10 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
               acc_resp_o.exception  = ara_resp.exception;
               ara_req_valid       = 1'b0;
               // In case of exception, modify vstart and wait until the previous
-              // operations are over
+              // operations are over. Then, flush.
               if ( ara_resp.exception.valid ) begin
                 csr_vstart_d = ara_resp.exception_vstart;
-                state_d = WAIT_IDLE;
+                state_d = WAIT_IDLE_FLUSH;
               end
             end
             ara_req.eew_vs1 = ara_req.vtype.vsew; // This is the new vs1 EEW
@@ -3257,7 +3340,7 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
             //       E.g., CSRs vxrm and vxsat have no influence on-non fixed-point instructions, it could be read and written safely when no fixed-point operation is running.
             //       By better analyzing the spec, more of optimizations of such can be made. For the sake of simplicity, the current implementation treats CSR ops as one block.
             // Just always go to WAIT_IDLE for at least one cycle (if there is a vinsn before the CSR one, it can be that ara_idle_i is still deasserted when the CSR is here).
-            if (!state_qq != WAIT_IDLE) begin
+            if (state_qq != WAIT_IDLE) begin
               state_d = WAIT_IDLE;
               acc_resp_o.req_ready = 1'b0;
             end else begin
@@ -3519,7 +3602,7 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
         // During a vstore, if vstart > 0, reshuffle immediately not to complicate operand fetch stage
         reshuffle_req_d = {ara_req.use_vs1 && (ara_req.eew_vs1    != eew_q[ara_req.vs1]) && eew_valid_q[ara_req.vs1] && (in_lane_op || (is_vstore && (csr_vstart_q != '0))),
                            ara_req.use_vs2 && (ara_req.eew_vs2    != eew_q[ara_req.vs2]) && eew_valid_q[ara_req.vs2] && in_lane_op,
-                           ara_req.use_vd  && (ara_req.vtype.vsew != eew_q[ara_req.vd ]) && eew_valid_q[ara_req.vd ] && csr_vl_q != ((VLENB << ara_req.emul[1:0]) >> ara_req.vtype.vsew)};
+                           ara_req.use_vd  && (ara_req.vtype.vsew != eew_q[ara_req.vd ]) && eew_valid_q[ara_req.vd ] && !(csr_vstart_q == 0 && (csr_vl_q == ((VLENB << ara_req.emul[1:0]) >> ara_req.vtype.vsew)))};
         // Mask out requests if they refer to the same register!
         reshuffle_req_d &= {
           (insn.varith_type.rs1 != insn.varith_type.rs2) && (insn.varith_type.rs1 != insn.varith_type.rd),

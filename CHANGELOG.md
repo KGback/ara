@@ -28,6 +28,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  - Fix vector slicing bug in operand requesters
  - Fix legality check for allowed registers in dispatcher
  - Remove a couple of latches
+ - Fix dispatcher state change upon vector CSR instruction
+ - Force a reshuffle when `vl == vlmax && vstart > 0`
+ - Align g++ version with cheshire's if simulating with it (for QuestaSim)
+ - Don't compile the first-pass-decoder in CVA6 (need for a specific bender target)
+ - Solve type-conversion warnings about type  - Indexed loads need to wait for operand requesters ready in sequencer
+ - Drop sequencer `pe_req_valid` in case of exception
+ - Reworked STU exception flush engine
+ - Correctly flush the backend pipeline upon indexed load exceptions
+ - Make addrgen wait for index address before making an MMU request
+ - Fix typos in lane sequencer
+ - Fix sldu/addrgen synchronization
 
 ### Added
 
@@ -43,6 +54,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  - Add support for fault-only-first loads
  - Extend the riscv-tests MASKU-related tests
  - Add support for vrgather/vcompress
+ - Add parametrized support for 8-alt, 8, 16-alt floating-point
+ - Add lavaMD `app`, benchmark, and performance plot
+ - Add Cheshire bare-metal FPGA flow for vcu128 and vcu118
+ - Add cva6-sdk submodule
+ - Add Cheshire Linux FPGA flow for vcu128 and vcu118
+ - Add RVV tests to be used with Cheshire's stub and specific debug environment.
 
 ### Changed
 
@@ -77,6 +94,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
  - The MASKU always receives balanced payloads from the lanes
  - Remove FPU support for opqueues that do not need it
  - Pre-calculate timing-critical addresses before addrgen stage
+ - Update all GitHub Actions for CI
+ - Update READMEs with FPGA implementation instructions
+ - Optimize `addrgen` timing for OS-on operation
+ - Enable OS by default
 
 ## 3.0.0 - 2023-09-08
 

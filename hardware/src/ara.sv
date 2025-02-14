@@ -10,7 +10,7 @@ module ara import ara_pkg::*; #(
     // RVV Parameters
     parameter  int           unsigned NrLanes      = 0,                          // Number of parallel vector lanes.
     parameter  int           unsigned VLEN         = 0,                          // VLEN [bit]
-    parameter  int           unsigned OSSupport    = 0,
+    parameter  int           unsigned OSSupport    = 1,
     // Support for floating-point data types
     parameter  fpu_support_e          FPUSupport   = FPUSupportHalfSingleDouble,
     // External support for vfrec7, vfrsqrt7
@@ -52,6 +52,7 @@ module ara import ara_pkg::*; #(
     input  axi_resp_t         axi_resp_i
   );
 
+  `include "common_cells/registers.svh"
   `include "ara/ara_typedef.svh"
   import cf_math_pkg::idx_width;
 
@@ -183,10 +184,14 @@ module ara import ara_pkg::*; #(
   logic      [NrLanes-1:0]      fflags_ex_valid;
   logic      [NrLanes-1:0]      vxsat_flag;
   vxrm_t     [NrLanes-1:0]      alu_vxrm;
+  // Flush support for store exceptions
+  logic lsu_ex_flush_lane, lsu_ex_flush_done;
+  logic [NrLanes-1:0] lsu_ex_flush_stu;
 
   ara_dispatcher #(
     .NrLanes   (NrLanes   ),
     .VLEN      (VLEN      ),
+    .FPUSupport(FPUSupport),
     .SegSupport(SegSupport),
     .ara_req_t (ara_req_t ),
     .ara_resp_t(ara_resp_t)
@@ -208,6 +213,9 @@ module ara import ara_pkg::*; #(
     .alu_vxrm_o        (alu_vxrm        ),
     .fflags_ex_i       (fflags_ex       ),
     .fflags_ex_valid_i (fflags_ex_valid ),
+    // Flush support
+    .lsu_ex_flush_o     (lsu_ex_flush_lane),
+    .lsu_ex_flush_done_i(lsu_ex_flush_done),
     // Interface with the Vector Store Unit
     .core_st_pending_o (core_st_pending ),
     .load_complete_i   (load_complete   ),
@@ -230,6 +238,7 @@ module ara import ara_pkg::*; #(
   ariane_pkg::exception_t          addrgen_exception;
   vlen_t                           addrgen_exception_vstart;
   logic                            addrgen_fof_exception;
+  logic                            lsu_current_burst_exception;
   logic              [NrLanes-1:0] alu_vinsn_done;
   logic              [NrLanes-1:0] mfpu_vinsn_done;
   // Interface with the operand requesters
@@ -285,7 +294,8 @@ module ara import ara_pkg::*; #(
     .addrgen_ack_i         (addrgen_ack              ),
     .addrgen_exception_i   (addrgen_exception        ),
     .addrgen_exception_vstart_i(addrgen_exception_vstart),
-    .addrgen_fof_exception_i(addrgen_fof_exception)
+    .addrgen_fof_exception_i(addrgen_fof_exception),
+    .lsu_current_burst_exception_i(lsu_current_burst_exception)
   );
 
   // Scalar move support
@@ -304,11 +314,10 @@ module ara import ara_pkg::*; #(
   elen_t     [NrLanes-1:0]                     stu_operand;
   logic      [NrLanes-1:0]                     stu_operand_valid;
   logic      [NrLanes-1:0]                     stu_operand_ready;
-  logic                                        stu_exception_flush;
   // Slide unit/address generation operands
   elen_t     [NrLanes-1:0]                     sldu_addrgen_operand;
-  target_fu_e[NrLanes-1:0]                     sldu_addrgen_operand_target_fu;
-  logic      [NrLanes-1:0]                     sldu_addrgen_operand_valid;
+  logic      [NrLanes-1:0]                     sldu_operand_valid;
+  logic      [NrLanes-1:0]                     addrgen_operand_valid;
   logic      [NrLanes-1:0]                     sldu_operand_ready;
   sldu_mux_e                                   sldu_mux_sel;
   logic                                        addrgen_operand_ready;
@@ -364,6 +373,9 @@ module ara import ara_pkg::*; #(
       .alu_vxrm_i                      (alu_vxrm[lane]                      ),
       .fflags_ex_o                     (fflags_ex[lane]                     ),
       .fflags_ex_valid_o               (fflags_ex_valid[lane]               ),
+      // Support for store exception flush
+      .lsu_ex_flush_i                  (lsu_ex_flush_lane                   ),
+      .lsu_ex_flush_o                  (lsu_ex_flush_stu[lane]              ),
       // Interface with the sequencer
       .pe_req_i                        (pe_req                              ),
       .pe_req_valid_i                  (pe_req_valid                        ),
@@ -393,11 +405,10 @@ module ara import ara_pkg::*; #(
       .stu_operand_o                   (stu_operand[lane]                   ),
       .stu_operand_valid_o             (stu_operand_valid[lane]             ),
       .stu_operand_ready_i             (stu_operand_ready[lane]             ),
-      .stu_exception_flush_i           (stu_exception_flush                 ),
       // Interface with the slide/address generation unit
       .sldu_addrgen_operand_o          (sldu_addrgen_operand[lane]          ),
-      .sldu_addrgen_operand_target_fu_o(sldu_addrgen_operand_target_fu[lane]),
-      .sldu_addrgen_operand_valid_o    (sldu_addrgen_operand_valid[lane]    ),
+      .sldu_operand_valid_o            (sldu_operand_valid[lane]            ),
+      .addrgen_operand_valid_o         (addrgen_operand_valid[lane]         ),
       .addrgen_operand_ready_i         (addrgen_operand_ready               ),
       .sldu_mux_sel_i                  (sldu_mux_sel                        ),
       .sldu_operand_ready_i            (sldu_operand_ready[lane]            ),
@@ -432,22 +443,24 @@ module ara import ara_pkg::*; #(
   logic vstu_mask_ready;
 
   // Optional OS support
-  logic acc_mmu_misaligned_ex, acc_mmu_req, acc_mmu_is_store, acc_mmu_dtlb_hit, acc_mmu_valid, acc_mmu_en;
+  logic acc_mmu_misaligned_ex, acc_mmu_req, acc_mmu_is_store, acc_mmu_dtlb_hit, acc_mmu_valid;
+  logic acc_mmu_en, acc_mmu_en_q;
   logic [riscv::VLEN-1:0] acc_mmu_vaddr;
   logic [riscv::PLEN-1:0] acc_mmu_paddr;
   logic [riscv::PPNW-1:0] acc_mmu_dtlb_ppn;
   ariane_pkg::exception_t acc_mmu_exception;
+
   if (OSSupport) begin
     assign acc_resp_o.acc_mmu_req.acc_mmu_misaligned_ex = acc_mmu_misaligned_ex;
     assign acc_resp_o.acc_mmu_req.acc_mmu_req           = acc_mmu_req;
     assign acc_resp_o.acc_mmu_req.acc_mmu_vaddr         = acc_mmu_vaddr;
     assign acc_resp_o.acc_mmu_req.acc_mmu_is_store      = acc_mmu_is_store;
-    assign acc_mmu_en        = acc_req_i.acc_mmu_en;
     assign acc_mmu_dtlb_hit  = acc_req_i.acc_mmu_resp.acc_mmu_dtlb_hit;
     assign acc_mmu_dtlb_ppn  = acc_req_i.acc_mmu_resp.acc_mmu_dtlb_ppn;
     assign acc_mmu_valid     = acc_req_i.acc_mmu_resp.acc_mmu_valid;
     assign acc_mmu_paddr     = acc_req_i.acc_mmu_resp.acc_mmu_paddr;
     assign acc_mmu_exception = acc_req_i.acc_mmu_resp.acc_mmu_exception;
+    assign acc_mmu_en        = acc_req_i.acc_mmu_en;
   end else begin
     assign acc_resp_o.acc_mmu_req.acc_mmu_misaligned_ex = '0;
     assign acc_resp_o.acc_mmu_req.acc_mmu_req           = '0;
@@ -460,6 +473,10 @@ module ara import ara_pkg::*; #(
     assign acc_mmu_paddr     = '0;
     assign acc_mmu_exception = '0;
   end
+
+  // Break path for acc_mmu_en. This signal can afford some additional latency
+  // since vector mem ops take multiple cycles to reach the addrgen
+  `FF(acc_mmu_en_q, acc_mmu_en, '0, clk_i, rst_ni);
 
   vlsu #(
     .NrLanes     (NrLanes     ),
@@ -487,6 +504,9 @@ module ara import ara_pkg::*; #(
     .load_complete_o            (load_complete                                         ),
     .store_complete_o           (store_complete                                        ),
     .store_pending_o            (store_pending                                         ),
+    // STU exception support
+    .lsu_ex_flush_i             (|lsu_ex_flush_stu                                     ),
+    .lsu_ex_flush_done_o        (lsu_ex_flush_done                                     ),
     // Interface with the sequencer
     .pe_req_i                   (pe_req                                                ),
     .pe_req_valid_i             (pe_req_valid                                          ),
@@ -497,6 +517,7 @@ module ara import ara_pkg::*; #(
     .addrgen_exception_o        (addrgen_exception                                     ),
     .addrgen_exception_vstart_o (addrgen_exception_vstart                              ),
     .addrgen_fof_exception_o    (addrgen_fof_exception                                 ),
+    .lsu_current_burst_exception_o (lsu_current_burst_exception),
     // Interface with the Mask unit
     .mask_i                     (mask                                                  ),
     .mask_valid_i               (mask_valid                                            ),
@@ -507,14 +528,12 @@ module ara import ara_pkg::*; #(
     .stu_operand_i              (stu_operand                                           ),
     .stu_operand_valid_i        (stu_operand_valid                                     ),
     .stu_operand_ready_o        (stu_operand_ready                                     ),
-    .stu_exception_flush_o      (stu_exception_flush                                   ),
     // Address Generation
     .addrgen_operand_i          (sldu_addrgen_operand                                  ),
-    .addrgen_operand_target_fu_i(sldu_addrgen_operand_target_fu                        ),
-    .addrgen_operand_valid_i    (sldu_addrgen_operand_valid                            ),
+    .addrgen_operand_valid_i    (addrgen_operand_valid                                 ),
     .addrgen_operand_ready_o    (addrgen_operand_ready                                 ),
     // CSR input
-    .en_ld_st_translation_i     (acc_req_i.acc_mmu_en                                  ),
+    .en_ld_st_translation_i     (acc_mmu_en_q                                          ),
     // Interface with CVA6's sv39 MMU
     .mmu_misaligned_ex_o        (acc_mmu_misaligned_ex                                 ),
     .mmu_req_o                  (acc_mmu_req                                           ),
@@ -559,8 +578,7 @@ module ara import ara_pkg::*; #(
     .pe_resp_o               (pe_resp[NrLanes+OffsetSlide]     ),
     // Interface with the lanes
     .sldu_operand_i          (sldu_addrgen_operand             ),
-    .sldu_operand_target_fu_i(sldu_addrgen_operand_target_fu   ),
-    .sldu_operand_valid_i    (sldu_addrgen_operand_valid       ),
+    .sldu_operand_valid_i    (sldu_operand_valid               ),
     .sldu_operand_ready_o    (sldu_operand_ready               ),
     .sldu_result_req_o       (sldu_result_req                  ),
     .sldu_result_addr_o      (sldu_result_addr                 ),
