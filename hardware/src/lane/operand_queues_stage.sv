@@ -6,7 +6,7 @@
 // Description:
 // This stage holds the operand queues, holding elements for the VRFs.
 
-module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg::idx_width; #(
+module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg::idx_width; import ifmix_pkg::*; #(
     parameter int     unsigned NrLanes          = 0,
     parameter int     unsigned VLEN             = 0,
     // Support for floating-point data types
@@ -52,7 +52,9 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     // Mask unit
     output elen_t              [1:0]                 mask_operand_o,
     output logic               [1:0]                 mask_operand_valid_o,
-    input  logic               [1:0]                 mask_operand_ready_i
+    input  logic               [1:0]                 mask_operand_ready_i,
+
+    output transfer_pack_t     [1:0]                 vifmm_transfer_pack_o
   );
 
   `include "common_cells/registers.svh"
@@ -128,7 +130,27 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
   //  Multiplier/FPU  //
   //////////////////////
 
-  operand_queue #(
+  // gukai@20250225
+  transfer_pack_t [1:0] transfer_pack_a;
+
+  outlier_judge #(
+    .outlier_thd_static(ifmix_pkg::OLR_THD)    
+  ) i_outlier_judge (
+    .clk_i                    ( clk_i               ),  
+    .rst_ni                   ( rst_ni                ),  
+    .flush_i                  ( flush_i               ),    
+    .operand_i                ( operand_i[MulFPUA] ),  
+    .operand_valid_i          ( operand_valid_i[MulFPUA] ),    
+    .operand_eew_a_i          ( operand_queue_cmd_i[MulFPUA].eew ),
+    .operand_eew_b_i          ( operand_queue_cmd_i[MulFPUB].eew ),
+    .operand_eew_a_valid_i    ( operand_queue_cmd_valid_i[MulFPUA] ),
+    .operand_eew_b_valid_i    ( operand_queue_cmd_valid_i[MulFPUB] ),
+    .transfer_pack_o          ( transfer_pack_a                  ),        
+    .transfer_pack_valid_o    ( )
+  );
+
+
+  operand_queue_mfpu_a #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
     .DataBufDepth       (5                    ),
     .FPUSupport         (FPUSupport           ),
@@ -150,13 +172,15 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_valid_i          (operand_valid_i[MulFPUA]          ),
     .operand_issued_i         (operand_issued_i[MulFPUA]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUA]    ),
+    .transfer_pack_i         ( transfer_pack_a                  ),   
     .operand_o                (mfpu_operand_o[0]                 ),
     .operand_target_fu_o      (/* Unused */                      ),
     .operand_valid_o          (mfpu_operand_valid_o[0]           ),
-    .operand_ready_i          (mfpu_operand_ready_i[0]           )
+    .operand_ready_i          (mfpu_operand_ready_i[0]           ),
+    .transfer_pack_o          (vifmm_transfer_pack_o             )  // gukai@20250219: for dequantize or decompensation
   );
 
-  operand_queue #(
+  operand_queue_mfpu_b #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
     .DataBufDepth       (5                    ),
     .FPUSupport         (FPUSupport           ),
@@ -173,10 +197,11 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .lane_id_i                (lane_id_i                         ),
     .operand_queue_cmd_i      (operand_queue_cmd_i[MulFPUB]      ),
     .operand_queue_cmd_valid_i(operand_queue_cmd_valid_i[MulFPUB]),
+    .transfer_pack_i          (transfer_pack_a                   ),  // gukai@20250219: modify the number of operand B of MFPU
     .cmd_pop_o                (/* Unused */                      ),
     .operand_i                (operand_i[MulFPUB]                ),
     .operand_valid_i          (operand_valid_i[MulFPUB]          ),
-    .operand_issued_i         (operand_issued_i[MulFPUB]         ),
+    .operand_issued_i         (operand_issued_i[MulFPUB]         ), 
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUB]    ),
     .operand_o                (mfpu_operand_o[1]                 ),
     .operand_target_fu_o      (/* Unused */                      ),
