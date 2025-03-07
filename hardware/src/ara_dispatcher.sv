@@ -1723,7 +1723,6 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
                   end
                   6'b101110: begin   // gukai@20250216
                     ara_req.op             = ara_pkg::VIFMM;
-                    ara_req.use_vd_op      = 1'b1;
                     ara_req.emul           = csr_vtype_q.vlmul;
                     ara_req.eew_vs1        = eew_q[ara_req.vs1];
                     ara_req.eew_vs2        = eew_q[ara_req.vs2];

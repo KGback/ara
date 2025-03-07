@@ -27,15 +27,7 @@ function automatic logic [31:0] fp32_to_int32_compensate(ara_pkg::fp32_t fp32);
     // Wide sign
     int32[31] = fp32.s;
 
-    // Wide exponent
-    // 1023 - 127 = 896
-    // unique case(fp32.e)
-    //   '0:      int32_p.e = (fp32.m == '0) ? '0 : 11'd896 - {6'd0, fp32_m_lzc}; // Zero or Subnormal
-    //   '1:      int32_p.e = '1; // NaN
-    //   default: int32_p.e = 11'd896 + {3'd0, fp32.e}; // Normal
-    // endcase
-
-    int32[30:0] = {7'b0,1'b1,fp32.m};
+    int32[30:0] = fp32.s ? {~{7'b0,1'b1,fp32.m}} + 1 : {7'b0,1'b1,fp32.m};
 
     fp32_to_int32_compensate = int32;
 endfunction
@@ -99,17 +91,15 @@ function automatic logic [31:0] fp32_to_int8_quantize(ara_pkg::fp32_t fp32, logi
      end
 
      `ifdef TARGET_SIMULATION
-          $display("full_m_fp32: %h, int_val_tmp: %h, int_val: %d, int8_q: %d",full_m_fp32, int_val_tmp, int_val, $signed(fp32_to_int8_quantize)); 
+          $display("[INFO: FP32_INT8_Q]: full_m_fp32: %h, int_val_tmp: %h, int_val: %d, int8_q: %d",full_m_fp32, int_val_tmp, int_val, $signed(fp32_to_int8_quantize)); 
      `endif
 endfunction
 
 function automatic ara_pkg::fp32_t int32_to_fp32_compensate(logic [31:0] int32,logic [7:0] fp32_exponent);
     automatic logic [30:0] int32_tmp;
 
-     // no need to convert complement code to orginal code, because fp32_to_int32_compensate.m is original code
-     //     int32_tmp[30:0]  = int32[31] ? { ~int32[30:0]} + 'b1 : int32[30:0];   
-
-     int32_tmp[30:0]           = int32[30:0];
+    // Need to convert complement code to orginal code, because op_b could be negative though fp32_to_int32_compensate.m is original code
+    int32_tmp[30:0]  = int32[31] ? { ~int32[30:0]} + 'b1 : int32[30:0];   
     int32_to_fp32_compensate.s = int32[31];
 
     unique casex ({int32[31],int32_tmp[30:0]})

@@ -28,9 +28,10 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-#define ROW 5
-#define COL 188
-#define VEC_SIZE 16
+#define ROW       5
+#define COL       188
+#define VEC_SIZE  16
+#define OLR_THD   2
 
 
 void compute( int8_t* w,  float* x_f,float* xp) {
@@ -94,7 +95,7 @@ int test1() {
     printf("GOLD RES:");
     for (int i = 0; i < VEC_SIZE; i++)
     {
-      xp_fp32[i] = (float)w_int8[i] * x_fp32[i] + xp_fp32[i];
+      xp_fp32[i] = (float)w_int8[i] * x_fp32[i] ;
       printf(" %f \t", xp_fp32[i]);
     }
     printf("\n");
@@ -182,7 +183,7 @@ int test3() {
     printf("GOLD RES:");
     for (int i = 0; i < VEC_SIZE; i++)
     {
-      xp_fp32[i] = (float)w_int8[i] * x_fp32[i] + xp_fp32[i];
+      xp_fp32[i] = (float)w_int8[i] * x_fp32[i];
       printf(" %f \t", xp_fp32[i]);
     }
     printf("\n");

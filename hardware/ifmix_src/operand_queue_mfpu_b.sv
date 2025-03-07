@@ -446,8 +446,8 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
       // gukai:20250219  reorganize the operand
       OpQueueConversionFPINT: begin
           unique case (cmd.eew)
-            EW8 : for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {24'b0, ibuf_operand[32*e + 8*select +: 8]};
-            EW16: for (int e = 0; e < 1; e++) conv_operand[64*e +: 64] =  {48'b0, ibuf_operand[64*e + 8*select +: 16]};
+            EW8 : for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 8* select + 7]}}, ibuf_operand[32*e + 8*select +: 8]};
+            EW16: for (int e = 0; e < 1; e++) conv_operand[64*e +: 64] =  {{48{ibuf_operand[64*e + 8* select +15]}}, ibuf_operand[64*e + 8*select +: 16]};
             default:;
           endcase
       end
