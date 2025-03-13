@@ -497,7 +497,7 @@ fifo_v3 #(
 
         `ifdef TARGET_SIMULATION
           if (ibuf_operand_valid) begin
-            $display("conv_operand: %d, %d",$signed(conv_operand[63:32]), $signed(conv_operand[31:0]));  
+            $display("[OP_QUEUE_A]: conv_operand: %d, %d",$signed(conv_operand[63:32]), $signed(conv_operand[31:0]));  
           end
           
 

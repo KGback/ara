@@ -23,6 +23,7 @@
 import random as rand
 import numpy as np
 import sys
+from scipy.stats import truncnorm
 
 def emit(name, array, alignment='8'):
   print(".global %s" % name)
@@ -49,6 +50,7 @@ def emit(name, array, alignment='8'):
 #   sys.exit()
 d = 188
 n = 5 
+VEC_SIZE = 500
 P = 1 
 
 dtypew = np.int8
@@ -56,13 +58,25 @@ dtypex = np.float32
 
 # Matrices and results
 # A = np.random.rand(d, n).astype(dtypew)
-# A = np.random.randint(low=-128,high=127,size=(d, n),dtype=np.int8)
-A = np.random.normal(loc=0.0, scale=1.0, size=(d, n))
-max_f = A.max()
-scale = max_f / 127
-qA = A / scale
-w = qA.astype(dtypew)
-B = np.random.rand(n, P).astype(dtypex)
+A = np.random.randint(low=-128,high=127,size=VEC_SIZE,dtype=np.int8)
+# A = np.random.normal(loc=0.0, scale=1.0, size=(d, n))
+# max_f = A.max()
+# scale = max_f / 127
+# qA = A / scale
+# w = qA.astype(dtypew)
+
+# 设置截断范围
+x_max = 2
+x_min = -1.9
+x_loc   = 0  # 原始均值
+x_scale = 1  # 标准差
+truncated_norm = truncnorm(x_min, x_max, x_loc, x_scale)
+B = truncated_norm.rvs(VEC_SIZE)
+B = B.astype(np.float32)
+# B = np.random.rand(n, P).astype(dtypex)
+# B = np.random.normal(loc = 0, scale=0.005, size=500)
+
+
 C = np.zeros([d, P], dtype=dtypew)
 # Golden result matrix
 G = np.matmul(A, B).astype(dtypex)

@@ -1724,9 +1724,9 @@ module ara_dispatcher import ara_pkg::*; import rvv_pkg::*; #(
                   6'b101110: begin   // gukai@20250216
                     ara_req.op             = ara_pkg::VIFMM;
                     ara_req.emul           = csr_vtype_q.vlmul;
-                    ara_req.eew_vs1        = eew_q[ara_req.vs1];
-                    ara_req.eew_vs2        = eew_q[ara_req.vs2];
-                    ara_req.vtype.vsew     = csr_vtype_q.vsew;
+                    ara_req.eew_vs1        = eew_q[ara_req.vs1];  // last ELEN config of vs1
+                    ara_req.eew_vs2        = eew_q[ara_req.vs2];  // last ELEN config of vs2
+                    ara_req.vtype.vsew     = csr_vtype_q.vsew;    // current ELEN config
                     ara_req.conversion_vs1 = OpQueueConversionFPINT;
                     ara_req.conversion_vs2 = OpQueueConversionFPINT;
                   end

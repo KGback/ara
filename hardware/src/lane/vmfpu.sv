@@ -2423,5 +2423,10 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
       clkgate_en_q            <= clkgate_en_d;
     end
   end
-
+  `ifdef TARGET_SIMULATION
+    always_ff @(posedge clk_i) begin
+      if (vinsn_issue_q.op == ara_pkg::VIFMM && mfpu_operand_valid_i[2:0] == 3'h3)
+        $display("[INFO: VMFPU]: op_a: %h op_b: %h",mfpu_operand_i[0], mfpu_operand_i[1]); 
+    end
+  `endif
 endmodule : vmfpu

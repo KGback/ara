@@ -24,15 +24,16 @@ fp32_t          olr_thd_dynamic_d,olr_thd_dynamic_q;
 logic   [23:0]  max_int_fp32;
 logic   [7:0]   olr_thd_diff_e_fp32;
 logic   [7:0]   op0_diff_e_fp32,op1_diff_e_fp32;
-logic   [15:0]  op0_comp_diff_e_fp32, op1_comp_diff_e_fp32, olr_thd_comp_diff_e_fp32;
-logic   [15:0]  op0_abs_comp_diff_e_fp32, op1_abs_comp_diff_e_fp32, olrthd_abs_comp_diff_e_fp32;
+// logic   [15:0]  op0_comp_diff_e_fp32, op1_comp_diff_e_fp32, olr_thd_comp_diff_e_fp32;
+// logic   [15:0]  op0_abs_comp_diff_e_fp32, op1_abs_comp_diff_e_fp32, olrthd_abs_comp_diff_e_fp32;
 logic   [23:0]  full_m_fp32;
 
 logic   [7:0] scaling_factor,scaling_factor_reg;
 rvv_pkg::vew_e                       operand_eew_a;
 rvv_pkg::vew_e                       operand_eew_b;
 
-assign          full_m_fp32 = {1'b1, olr_thd_dynamic_d.m};
+// assign          full_m_fp32 = {1'b1, olr_thd_dynamic_d.m};
+assign          full_m_fp32 = {1'b1, outlier_thd_static.m};
 
 always_comb begin  // update olr_thd
     operand[1]                  = '0;
@@ -41,14 +42,14 @@ always_comb begin  // update olr_thd
     max_int_fp32                = '0;
     olr_thd_diff_e_fp32         = '0;
     op0_diff_e_fp32             = '0;  
-    op0_comp_diff_e_fp32        = '0;          
-    op0_abs_comp_diff_e_fp32    = '0;              
+    // op0_comp_diff_e_fp32        = '0;          
+    // op0_abs_comp_diff_e_fp32    = '0;              
     op1_diff_e_fp32             = '0;  
-    op1_comp_diff_e_fp32        = '0;          
-    op1_abs_comp_diff_e_fp32    = '0;      
+    // op1_comp_diff_e_fp32        = '0;          
+    // op1_abs_comp_diff_e_fp32    = '0;      
     olr_thd_diff_e_fp32         = '0;
-    olr_thd_comp_diff_e_fp32    = '0;        
-    olrthd_abs_comp_diff_e_fp32 = '0;                   
+    // olr_thd_comp_diff_e_fp32    = '0;        
+    // olrthd_abs_comp_diff_e_fp32 = '0;                   
 
     unique case (operand_eew_a)
         EW8: begin
@@ -62,17 +63,19 @@ always_comb begin  // update olr_thd
             operand[0]    = operand_i[31:0];
             
             op0_diff_e_fp32             = operand[0].e - FP32_E_BIAS;   // maybe less than 0
-            op0_comp_diff_e_fp32        = {{8{op0_diff_e_fp32[7]}}, op0_diff_e_fp32};  // complement for 16 bits
-            op0_abs_comp_diff_e_fp32    = op0_comp_diff_e_fp32[15] ?  ~op0_comp_diff_e_fp32 + 1: op0_comp_diff_e_fp32;
+            // op0_comp_diff_e_fp32        = {{8{op0_diff_e_fp32[7]}}, op0_diff_e_fp32};  // complement for 16 bits
+            // op0_abs_comp_diff_e_fp32    = op0_comp_diff_e_fp32[15] ?  ~op0_comp_diff_e_fp32 + 1: op0_comp_diff_e_fp32;
 
             op1_diff_e_fp32             = operand[1].e - FP32_E_BIAS;
-            op1_comp_diff_e_fp32        = {{8{op1_diff_e_fp32[7]}}, op1_diff_e_fp32};
-            op1_abs_comp_diff_e_fp32    = op1_comp_diff_e_fp32[15] ?  ~op1_comp_diff_e_fp32 + 1: op1_comp_diff_e_fp32;
+            // op1_comp_diff_e_fp32        = {{8{op1_diff_e_fp32[7]}}, op1_diff_e_fp32};
+            // op1_abs_comp_diff_e_fp32    = op1_comp_diff_e_fp32[15] ?  ~op1_comp_diff_e_fp32 + 1: op1_comp_diff_e_fp32;
 
-            // mostly, olr_thd_dynamic > 1, so olr_thd_dynamic_q.e > 127
-            olr_thd_diff_e_fp32         = olr_thd_dynamic_q.e - FP32_E_BIAS;        
-            olr_thd_comp_diff_e_fp32    = {{8{olr_thd_diff_e_fp32[7]}}, olr_thd_diff_e_fp32}; 
-            olrthd_abs_comp_diff_e_fp32 = olr_thd_comp_diff_e_fp32[15] ?  ~olr_thd_comp_diff_e_fp32 + 1: olr_thd_comp_diff_e_fp32;
+            // mostly, olr_thd_dynamic > 1, so olr_thd_dynamic_d.e > 127
+            // olr_thd_diff_e_fp32         = olr_thd_dynamic_d.e - FP32_E_BIAS;   
+            olr_thd_diff_e_fp32         = outlier_thd_static.e - FP32_E_BIAS;   // use static outlier threshold
+
+            // olr_thd_comp_diff_e_fp32    = {{8{olr_thd_diff_e_fp32[7]}}, olr_thd_diff_e_fp32}; 
+            // olrthd_abs_comp_diff_e_fp32 = olr_thd_comp_diff_e_fp32[15] ?  ~olr_thd_comp_diff_e_fp32 + 1: olr_thd_comp_diff_e_fp32;
 
             // operand[0].e is positive (operand[0].e is larger than FP32_E_BIAS) and 2^7=128 larger than olr_thd_dynamic      
             // if ((olrthd_abs_comp_diff_e_fp32 + 7) < op0_abs_comp_diff_e_fp32 ) begin  
