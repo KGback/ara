@@ -35,13 +35,12 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
     input  logic                              operand_valid_i,
     input  logic                              operand_issued_i,
     output logic                              operand_queue_ready_o,
-    input transfer_pack_t     [1:0]           transfer_pack_i,
     // Interface with the functional units
     output elen_t                             operand_o,
     output target_fu_e                        operand_target_fu_o,
     output logic                              operand_valid_o,
     input  logic               [NrSlaves-1:0] operand_ready_i,
-    output transfer_pack_t     [1:0]          transfer_pack_o
+    output vifmm_conversion_e                vifmm_cov_type_o  // gukai@20250523
   );
 
   //////////////////////
@@ -103,32 +102,6 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
     .usage_o   (/* Unused */   )
   );
   assign ibuf_operand_valid = !ibuf_empty;
-
-
-// gukai@20250216
-///////////////////////////////////////////////////
-//   Before fifo, we judge for transfer_pack     //
-
-transfer_pack_t [1:0]  transfer_pack;
-
-fifo_v3 #(
-  .DEPTH(       DataBufDepth  ),
-  .DATA_WIDTH(  9*2          )
-) i_transpack_buffer (
-  .clk_i     (clk_i                    ),
-  .rst_ni    (rst_ni                   ),
-  .testmode_i(1'b0                     ),
-  .flush_i   (flush_i                  ),
-  .data_i    ({transfer_pack_i[1],transfer_pack_i[0]}       ),
-  .push_i    (operand_valid_i          ),
-  .full_o    (/* Unused */             ),
-  .data_o    ({transfer_pack[1],transfer_pack[0]}           ),
-  .empty_o   (/* Unused */             ),
-  .pop_i     (ibuf_pop                  ),
-  .usage_o   (/* Unused */             )
-);
-
-
 
   // We used a credit based system, to ensure that the FIFO is always
   // able to accept a request.
@@ -249,6 +222,7 @@ fifo_v3 #(
 
     // Default: no conversion
     conv_operand = ibuf_operand;
+    vifmm_cov_type_o = NON_VIFMM;   // gukai@20250523
     // Default: packet complete
     incomplete_packet = 1'b0;
     last_packet       = 1'b0;
@@ -473,32 +447,19 @@ fifo_v3 #(
 
       // gukai@20250217
       //   After fifo, we transfer    
-      OpQueueConversionFPINT: begin
-        transfer_pack_o[1]   = transfer_pack[1];
-        transfer_pack_o[0]   = transfer_pack[0];
-        unique case (cmd.eew)
-          EW8: ;
-          EW16: ;
-          EW32:  begin
-            if (transfer_pack[1].transfer_type) begin
-                conv_operand[63:32]     = fp32_to_int8_quantize(ibuf_operand[63:32], transfer_pack[1].transfer_data);
-            end else begin
-                conv_operand[63:32] = fp32_to_int32_compensate(ibuf_operand[63:32]);
-            end
-
-            if (transfer_pack[0].transfer_type) begin
-                conv_operand[31:0] = fp32_to_int8_quantize(ibuf_operand[31:0], transfer_pack[0].transfer_data);
-            end else begin
-                conv_operand[31:0] = fp32_to_int32_compensate(ibuf_operand[31:0]);
-            end
-          end
-          default:;
-        endcase
+      OpQueueConversionF32I8: begin
+        // transfer_pack_o[1]   = transfer_pack[1];
+        // transfer_pack_o[0]   = transfer_pack[0];
+        conv_operand = ibuf_operand;
+        vifmm_cov_type_o = ibuf_operand_valid // gukai@20250529 when there is no waiting cmd in fifo, vifmm_cov_type maybe VIFMM which was saved in fifo before.
+                            ? F32I8 
+                            : NON_VIFMM; 
+  
 
         `ifdef TARGET_SIMULATION
-          if (ibuf_operand_valid) begin
-            $display("[OP_QUEUE_A]: conv_operand: %d, %d",$signed(conv_operand[63:32]), $signed(conv_operand[31:0]));  
-          end
+          // if (ibuf_operand_valid) begin
+            // $display("[OP_QUEUE_A]: conv_operand: %d, %d",$signed(conv_operand[63:32]), $signed(conv_operand[31:0]));  
+          // end
           
 
         `endif 
@@ -581,7 +542,7 @@ fifo_v3 #(
 
       // Finished using an operand
       // gukai@20250302
-      if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone || cmd.conv == OpQueueConversionFPINT) ibuf_pop = 1'b1;
+      if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone || cmd.conv == OpQueueConversionF32I8) ibuf_pop = 1'b1;
 
       // Finished execution
       if (elem_count_d >= cmd.elem_count) begin : finished_elems

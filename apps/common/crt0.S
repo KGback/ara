@@ -70,9 +70,11 @@ reset_vector:
     li      x29, 0
     li      x30, 0
     li      x31, 0
+    // gukai 1GB too large in questasim
     // Initialize stack at the end of the DRAM region
-    la      t0, dram_end_address_reg
-    ld      sp, 0(t0)
+    // la      t0, dram_end_address_reg
+    // ld      sp, 0(t0)
+    li      sp, 0xA0000000
     // Set up a PMP to permit all accesses
     li t0, (1 << (31 + (__riscv_xlen / 64) * (53 - 31))) - 1
     csrw pmpaddr0, t0

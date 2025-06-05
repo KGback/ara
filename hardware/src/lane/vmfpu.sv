@@ -445,7 +445,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .valid_i    (vmul_simd_in_valid_q[EW64]    ),
     .ready_o    (vmul_simd_in_ready[EW64]      ),
     .ready_i    (vmul_simd_out_ready[EW64]     ),
-    .valid_o    (vmul_simd_out_valid[EW64]     )
+    .valid_o    (vmul_simd_out_valid[EW64]     ),
+    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
   simd_mul #(
@@ -467,7 +468,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .valid_i    (vmul_simd_in_valid_q[EW32]    ),
     .ready_o    (vmul_simd_in_ready[EW32]      ),
     .ready_i    (vmul_simd_out_ready[EW32]     ),
-    .valid_o    (vmul_simd_out_valid[EW32]     )
+    .valid_o    (vmul_simd_out_valid[EW32]     ),
+    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
   simd_mul #(
@@ -489,7 +491,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .valid_i    (vmul_simd_in_valid_q[EW16]    ),
     .ready_o    (vmul_simd_in_ready[EW16]      ),
     .ready_i    (vmul_simd_out_ready[EW16]     ),
-    .valid_o    (vmul_simd_out_valid[EW16]     )
+    .valid_o    (vmul_simd_out_valid[EW16]     ),
+    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
   simd_mul #(
@@ -511,7 +514,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .valid_i    (vmul_simd_in_valid_q[EW8]     ),
     .ready_o    (vmul_simd_in_ready[EW8]       ),
     .ready_i    (vmul_simd_out_ready[EW8]      ),
-    .valid_o    (vmul_simd_out_valid[EW8]      )
+    .valid_o    (vmul_simd_out_valid[EW8]      ),
+    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
   // The outputs of the SIMD multipliers are read in order
@@ -525,7 +529,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
   always_comb begin
     // Only one SIMD Multiplier receives the request
     vmul_simd_in_valid                           = '0;
-    vmul_simd_in_valid[vinsn_issue_q.vtype.vsew] = vmul_in_valid;
+    vmul_simd_in_valid[vinsn_issue_q.vtype.vsew] = clkgate_en_q & vmul_in_valid;
     vmul_in_ready                                = clkgate_en_q & vmul_simd_in_ready[vinsn_issue_q.vtype.vsew];
 
     // Saturation flag
@@ -883,6 +887,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     // Don't compress classify result
     localparam int unsigned TrueSIMDClass  = 1;
     localparam int unsigned EnableSIMDMask = 1;
+    localparam fpnew_pkg::divsqrt_unit_t DivSqrtSel = fpnew_pkg::PULP;
 
     operation_e fp_op;
     logic fp_opmod;
@@ -1098,6 +1103,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     fpnew_top #(
       .Features      (FPUFeatures      ),
       .Implementation(FPUImplementation),
+      .DivSqrtSel    (DivSqrtSel       ),
       .TagType       (strb_t           ),
       .TrueSIMDClass (TrueSIMDClass    ),
       .EnableSIMDMask(EnableSIMDMask   )
@@ -1626,6 +1632,11 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             narrowing_shuffled_result[15:8]  = unit_out_result[7:0];
             narrowing_shuffled_result[7:0]   = unit_out_result[7:0];
             narrowing_shuffle_be             = !narrowing_select_out_q ? 8'b01010101 : 8'b10101010;
+          end else begin
+            // Default assignment
+            narrowing_shuffled_result[63:32] = unit_out_result[31:0];
+            narrowing_shuffled_result[31:0]  = unit_out_result[31:0];
+            narrowing_shuffle_be             = !narrowing_select_out_q ? 8'b00110011 : 8'b11001100;
           end
           EW16: begin
             narrowing_shuffled_result[63:48] = unit_out_result[31:16];
@@ -1679,22 +1690,22 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             end
           end else begin
             // gukai@20250218 : dequantize or decompensate
-            if (vinsn_processing_q.op == ara_pkg::VIFMM) begin
-              // TODO: Arrange date accroding to transfer_type[2:0]
-              if (vifmm_transfer_pack_ff2[1].transfer_type) begin
-                result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int8_to_fp32_dequantize(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
-              end else begin
-                result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int32_to_fp32_compensate(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
-              end
-
-              if (vifmm_transfer_pack_ff2[0].transfer_type) begin
-                result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int8_to_fp32_dequantize(unit_out_result[31:0], vifmm_transfer_pack_ff2[0].transfer_data);
-              end else begin
-                result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int32_to_fp32_compensate(unit_out_result[31:0],vifmm_transfer_pack_ff2[0].transfer_data);
-              end
-            end else begin
+            // if (vinsn_processing_q.op == ara_pkg::VIFMM) begin
+            //   // TODO: Arrange date accroding to transfer_type[2:0]
+            //   if (vifmm_transfer_pack_ff2[1].transfer_type) begin
+            //     result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int8_to_fp32_dequantize(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
+            //   end else begin
+            //     result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int32_to_fp32_compensate(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
+            //   end
+// 
+            //   if (vifmm_transfer_pack_ff2[0].transfer_type) begin
+            //     result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int8_to_fp32_dequantize(unit_out_result[31:0], vifmm_transfer_pack_ff2[0].transfer_data);
+            //   end else begin
+            //     result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int32_to_fp32_compensate(unit_out_result[31:0],vifmm_transfer_pack_ff2[0].transfer_data);
+            //   end
+            // end else begin
               result_queue_d[result_queue_write_pnt_q].wdata = unit_out_result;
-            end
+            // end
           end
           if (!narrowing(vinsn_processing_q.cvt_resize) || !narrowing_select_out_q)
             result_queue_d[result_queue_write_pnt_q].be =
@@ -2135,8 +2146,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
         // Finish this instruction if the last result is acknowledged
         // In the case of vl=0, wait until the redundant data is acknowledged
         if (!(lane_id_i == '0) && to_process_cnt_d == '0 && ((vinsn_processing_q.vl == '0) ? !first_op_q : red_hs_synch_q)) begin
-          // Give the done to the main sequencer
-          commit_cnt_d = '0;
           mfpu_state_d = MFPU_WAIT;
         end else if ((lane_id_i == '0) && sldu_mfpu_valid_q && to_process_cnt_d == '0) begin
           // Lane 0 should wait for the final result
@@ -2155,7 +2164,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             result_queue_write_pnt_d = result_queue_write_pnt_q + 1;
 
           sldu_mfpu_ready_d = 1'b1;
-          commit_cnt_d = '0;
           mfpu_state_d = MFPU_WAIT;
         end
       end
@@ -2423,10 +2431,5 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
       clkgate_en_q            <= clkgate_en_d;
     end
   end
-  `ifdef TARGET_SIMULATION
-    always_ff @(posedge clk_i) begin
-      if (vinsn_issue_q.op == ara_pkg::VIFMM && mfpu_operand_valid_i[2:0] == 3'h3)
-        $display("[INFO: VMFPU]: op_a: %h op_b: %h",mfpu_operand_i[0], mfpu_operand_i[1]); 
-    end
-  `endif
+
 endmodule : vmfpu

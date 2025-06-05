@@ -108,7 +108,7 @@ define app_compile_template
 bin/$1$(BIN_SUFFIX): $1/data.S.o $(addsuffix .o, $(shell find $(1) -name "*.c" -o -name "*.S")) $(RUNTIME_LLVM) linker_script
 	mkdir -p bin/
 	$$(RISCV_CC) -Iinclude $(RISCV_CCFLAGS) -o $$@ $$(addsuffix .o, $$(shell find $(1) -name "*.c" -o -name "*.S")) $(RUNTIME_LLVM) $$(RISCV_LDFLAGS)
-	$$(RISCV_OBJDUMP) $$(RISCV_OBJDUMP_FLAGS) -D $$@ > $$@.dump
+	$$(RISCV_OBJDUMP) $$(RISCV_OBJDUMP_FLAGS) -D -S $$@ > $$@.dump
 	$$(RISCV_STRIP) $$@ -S --strip-unneeded
 endef
 $(foreach app,$(APPS),$(eval $(call app_compile_template,$(app))))

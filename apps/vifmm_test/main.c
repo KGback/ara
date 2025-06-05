@@ -25,8 +25,6 @@
 #include "util.h"
 
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 #define ROW           5
 #define COL           188
 #define VEC_SIZE_0     16
@@ -57,10 +55,11 @@ void compute( int8_t* w,  float* x_f,float* xp, int size) {
     asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
     asm volatile("vle32.v v0, (%0);" ::"r"(xp));
     asm volatile("vsetvli zero, %0, e8, m2, ta, ma" ::"r"(block_size));    
-    asm volatile("vle8.v v16, (%0);" ::"r"(w));
+    asm volatile("vle8.v v24, (%0);" ::"r"(w));
     asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
-    asm volatile("vle32.v v24, (%0);" ::"r"(x_f));
-    asm volatile("vifmm.vv v0, v24, v16");
+    asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
+    asm volatile("vifbw.vv v0, v16, v24");  // llvm
+    // asm volatile("vifbw v0, v24, v16");   // gcc
 
     asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
     asm volatile("vse32.v v0, (%0);" ::"r"(xp));
@@ -192,8 +191,8 @@ int test3(float* x_fp32, int8_t* w_int8) {
     }
     printf("\n");
 
-    printf("Stack address: %p, %p, %p, %p\n", (void*)&res_fp32[0],(void*)&res_fp32[1], (void*)&res_fp32[2],(void*)&res_fp32[3]);
-    printf("Stack address: %p, %p, %p, %p\n", (void*)&gold_fp32[0],(void*)&gold_fp32[1], (void*)&gold_fp32[2],(void*)&gold_fp32[3]);
+    // printf("Stack address: %p, %p, %p, %p\n", (void*)&res_fp32[0],(void*)&res_fp32[1], (void*)&res_fp32[2],(void*)&res_fp32[3]);
+    // printf("Stack address: %p, %p, %p, %p\n", (void*)&gold_fp32[0],(void*)&gold_fp32[1], (void*)&gold_fp32[2],(void*)&gold_fp32[3]);
 
     for (int i = 0; i < VEC_SIZE_3; i++)
     {

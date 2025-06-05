@@ -9,7 +9,7 @@
 // The parametric number of pipeline register determines the intrinsic latency of the unit.
 // Once the pipeline is full, the unit can generate 64 bits per cycle.
 
-module simd_mul import ara_pkg::*; import rvv_pkg::*; #(
+module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     // Support for fixed-point data types
     parameter  fixpt_support_e FixPtSupport = FixedPointEnable,
     // SIMD-multiplier parameters
@@ -34,7 +34,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; #(
     input  logic       valid_i,
     output logic       ready_o,
     input  logic       ready_i,
-    output logic       valid_o
+    output logic       valid_o,
+    input  logic [15:0]       transfer_data  // gukai@20250524
   );
 
 `include "common_cells/registers.svh"
@@ -52,6 +53,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; #(
 
   mul_operand_t opa, opb, opc;
   ara_op_e      op;
+
+  logic [1:0][64-1:0] result_tmp;  // gukai@20250524
 
   ///////////////////////
   //  Pipeline stages  //
@@ -139,8 +142,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; #(
   logic signed_a, signed_b;
 
   // Sign select MUX
-  assign signed_a = op inside {VMULH, VSMUL};
-  assign signed_b = op inside {VMULH, VMULHSU, VSMUL};
+  assign signed_a = op inside {VMULH, VSMUL, VIFMM};  // gukai@20250524 VSMUL
+  assign signed_b = op inside {VMULH, VMULHSU, VSMUL, VIFMM}; // gukai@20250524 VSMUL
 
   // saturation and rounding mode
   vxsat_t vxsat;
@@ -207,7 +210,11 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; #(
     always_comb begin : p_mul
       unique case (op)
         // Single-Width integer multiply instructions
-        VIFMM,   // gukai@20250303
+        VIFMM:   // gukai@20250303
+          for (int l = 0; l < 2; l++) begin
+            result_tmp[l][63:0] = mul_res.w64[l] + {{32{opc.w32[l][31]}}, opc.w32[l]} ;
+            result_o[32*l +: 32] = int32_to_fp32_compensate ( result_tmp[l][63:0], transfer_data[8*l +: 8] ) ;
+          end
         VMUL: for (int l = 0; l < 2; l++) result_o[32*l +: 32] = mul_res.w64[l][31:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)

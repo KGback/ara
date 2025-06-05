@@ -1,5 +1,16 @@
 package ifmix_pkg;
 
+
+localparam int unsigned NumVIFMM = 4;
+
+typedef enum logic [$clog2(NumVIFMM+1)-1:0] {
+     NON_VIFMM,
+     F32I8,
+     F32I16,
+     F16I8,
+     F16I16
+} vifmm_conversion_e;
+
 typedef struct packed {
     logic [31:0] int32;
     logic [7:0]  e;
@@ -17,19 +28,30 @@ typedef struct packed {
 
 // localparam int unsigned OLR_THD = 32'b0_10000100_10010000000000000000000;  // 50
 localparam int unsigned OLR_THD = 32'h4000_0000;  // 2
+// localparam int unsigned OLR_THD = 32'h3F00_0000;  // 0.5
 localparam int unsigned SCALING_FACTOR_INT8     = 127/OLR_THD;
 localparam int unsigned SCALING_FACTOR_INT16    = 32767/OLR_THD;
 
 // compute outlier value with compensation
-function automatic logic [31:0] fp32_to_int32_compensate(ara_pkg::fp32_t fp32);
-    automatic logic [31:0] int32;
+function automatic logic [31:0] fp32_to_int32_compensate(ara_pkg::fp32_t fp32, logic [7:0] exp_bigger);
+     automatic logic [31:0] int32;
+     automatic logic [30:0] real_mantissa;
+     // Wide sign
+     int32[31] = fp32.s;
 
-    // Wide sign
-    int32[31] = fp32.s;
+     if (fp32.e <  exp_bigger) begin
+          real_mantissa = {1'b1, fp32.m, 7'b0} >> (exp_bigger - fp32.e);
+     end else begin
+          real_mantissa = {1'b1, fp32.m, 7'b0};
+     end
 
-    int32[30:0] = fp32.s ? {~{7'b0,1'b1,fp32.m}} + 1 : {7'b0,1'b1,fp32.m};
+     int32[30:0] = fp32.s ? {~real_mantissa} + 1 : real_mantissa;
 
-    fp32_to_int32_compensate = int32;
+     fp32_to_int32_compensate = int32;
+
+     // `ifdef TARGET_SIMULATION
+     //      $display("[TIME: %0t, INFO: FP32_INT32_COMP]: fp32: %h, EB:%h RM: %h, fp32_to_int32_compensate: %h",$time(),fp32, exp_bigger, real_mantissa, fp32_to_int32_compensate);
+     // `endif
 endfunction
 
 // common value with quantization
@@ -91,17 +113,276 @@ function automatic logic [31:0] fp32_to_int8_quantize(ara_pkg::fp32_t fp32, logi
      end
 
      `ifdef TARGET_SIMULATION
-          $display("[INFO: FP32_INT8_Q]: fp32: %h full_m_fp32: %h, int_val: %d, int8_q: %h %d",fp32, full_m_fp32, int_val, fp32_to_int8_quantize,$signed(fp32_to_int8_quantize)); 
+          // $display("[INFO: FP32_INT8_Q]: fp32: %h full_m_fp32: %h, int_val: %d, int8_q: %h %d",fp32, full_m_fp32, int_val, fp32_to_int8_quantize,$signed(fp32_to_int8_quantize)); 
      `endif
 endfunction
 
-function automatic ara_pkg::fp32_t int32_to_fp32_compensate(logic [31:0] int32,logic [7:0] fp32_exponent);
-    automatic logic [30:0] int32_tmp;
+function automatic ara_pkg::fp32_t int32_to_fp32_compensate(logic [63:0] int32,logic [7:0] fp32_exponent);
+    automatic logic [62:0] int32_tmp;
 
     // Need to convert complement code to orginal code, because op_b could be negative though fp32_to_int32_compensate.m is original code
-    int32_tmp[30:0]  = int32[31] ? { ~int32[30:0]} + 'b1 : int32[30:0];   
-    int32_to_fp32_compensate.s = int32[31];
+    int32_tmp[62:0]  = int32[63] ? { ~int32[62:0]} + 'b1 : int32[62:0];   
+    int32_to_fp32_compensate.s = int32[63];
 
+     unique casex (int32_tmp[62:0])
+          63'b1??????_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd62 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[61:39];
+          end
+          63'b01?????_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd61 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[60:38];
+          end
+          63'b001????_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd60 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[59:37];
+          end
+          63'b0001???_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd59 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[58:36];
+          end
+          63'b00001??_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd58 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[57:35];
+          end
+          63'b000001?_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd57 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[56:34];
+          end
+          63'b0000001_????????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd56 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[55:33];
+          end
+          63'b0000000_1???????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd55 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[54:32];
+          end
+          63'b0000000_01??????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd54 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[53:31];
+          end
+          63'b0000000_001?????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd53 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[52:30];
+          end
+          63'b0000000_0001????_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd52 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[51:29];
+          end
+          63'b0000000_00001???_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd51 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[50:28];
+          end
+          63'b0000000_000001??_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd50 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[49:27];
+          end
+          63'b0000000_0000001?_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd49 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[48:26];
+          end
+          63'b0000000_00000001_????????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd48 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[47:25];
+          end
+          63'b0000000_00000000_1???????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd47 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[46:24];
+          end
+          63'b0000000_00000000_01??????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd46 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[45:23];
+          end
+          63'b0000000_00000000_001?????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd45 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[44:22];
+          end
+          63'b0000000_00000000_0001????_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd44 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[43:21];
+          end
+          63'b0000000_00000000_00001???_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd43 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[42:20];
+          end
+          63'b0000000_00000000_000001??_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd42 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[41:19];
+          end
+          63'b0000000_00000000_0000001?_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd41 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[40:18];
+          end
+          63'b0000000_00000000_00000001_????????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd40 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[39:17];
+          end
+          63'b0000000_00000000_00000000_1???????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd39 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[38:16];
+          end
+          63'b0000000_00000000_00000000_01??????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd38 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[37:15];
+          end
+          63'b0000000_00000000_00000000_001?????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd37 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[36:14];
+          end
+          63'b0000000_00000000_00000000_0001????_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd36 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[35:13];
+          end
+          63'b0000000_00000000_00000000_00001???_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd35 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[34:12];
+          end
+          63'b0000000_00000000_00000000_000001??_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd34 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[33:11];
+          end
+          63'b0000000_00000000_00000000_0000001?_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd33 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[32:10];
+          end
+          63'b0000000_00000000_00000000_00000001_????????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd32 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[31:9];
+          end
+          63'b0000000_00000000_00000000_00000000_1???????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd31 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[30:8];
+          end
+          63'b0000000_00000000_00000000_00000000_01??????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd30 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[29:7];
+          end
+          63'b0000000_00000000_00000000_00000000_001?????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd29 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[28:6];
+          end
+          63'b0000000_00000000_00000000_00000000_0001????_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd28 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[27:5];
+          end
+          63'b0000000_00000000_00000000_00000000_00001???_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd27 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[26:4];
+          end
+          63'b0000000_00000000_00000000_00000000_000001??_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd26 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[25:3];
+          end
+          63'b0000000_00000000_00000000_00000000_0000001?_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd25 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[24:2];
+          end
+          63'b0000000_00000000_00000000_00000000_00000001_????????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd24 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[23:1];
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_1???????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd23 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = int32_tmp[22:0];
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_01??????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd22 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {1'b0,int32_tmp[21:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_001?????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd21 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {2'b0,int32_tmp[20:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_0001????_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd20 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {3'b0,int32_tmp[19:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00001???_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd19 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {4'b0,int32_tmp[18:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_000001??_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd18 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {5'b0,int32_tmp[17:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_0000001?_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd17 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {6'b0,int32_tmp[16:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000001_????????_????????: begin
+               int32_to_fp32_compensate.e = 'd16 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {7'b0,int32_tmp[15:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_1???????_????????: begin
+               int32_to_fp32_compensate.e = 'd15 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {8'b0,int32_tmp[14:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_01??????_????????: begin
+               int32_to_fp32_compensate.e = 'd14 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {9'b0,int32_tmp[13:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_001?????_????????: begin
+               int32_to_fp32_compensate.e = 'd13 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {10'b0,int32_tmp[12:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_0001????_????????: begin
+               int32_to_fp32_compensate.e = 'd12 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {11'b0,int32_tmp[11:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00001???_????????: begin
+               int32_to_fp32_compensate.e = 'd11 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {12'b0,int32_tmp[10:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_000001??_????????: begin
+               int32_to_fp32_compensate.e = 'd10 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {13'b0,int32_tmp[9:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_0000001?_????????: begin
+               int32_to_fp32_compensate.e = 'd9 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {14'b0,int32_tmp[8:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000001_????????: begin
+               int32_to_fp32_compensate.e = 'd8 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {15'b0,int32_tmp[7:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_1???????: begin
+               int32_to_fp32_compensate.e = 'd7 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {16'b0,int32_tmp[6:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_01??????: begin
+               int32_to_fp32_compensate.e = 'd6 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {17'b0,int32_tmp[5:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_001?????: begin
+               int32_to_fp32_compensate.e = 'd5 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {18'b0,int32_tmp[4:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_0001????: begin
+               int32_to_fp32_compensate.e = 'd4 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {19'b0,int32_tmp[3:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_00001???: begin
+               int32_to_fp32_compensate.e = 'd3 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {20'b0,int32_tmp[2:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_000001??: begin
+               int32_to_fp32_compensate.e = 'd2 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {21'b0,int32_tmp[1:0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_0000001?: begin
+               int32_to_fp32_compensate.e = 'd1 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = {22'b0,int32_tmp[0]};
+          end
+          63'b0000000_00000000_00000000_00000000_00000000_00000000_00000000_00000001: begin
+               int32_to_fp32_compensate.e = 'd0 + fp32_exponent- 'd30;
+               int32_to_fp32_compensate.m = 23'b0; // no fraction part
+          end
+          default: begin
+               int32_to_fp32_compensate.e = '0;
+               int32_to_fp32_compensate.m = '0;
+          end
+     endcase
+/*
     unique casex ({int32[31],int32_tmp[30:0]})
         32'b11??????_????????_????????_????????: begin
              int32_to_fp32_compensate.e = 'd30 + fp32_exponent- 'd23;
@@ -356,9 +637,10 @@ function automatic ara_pkg::fp32_t int32_to_fp32_compensate(logic [31:0] int32,l
           int32_to_fp32_compensate.m = '0;
         end
     endcase
-     `ifdef TARGET_SIMULATION
-          $display("[INFO: INT32_FP32_COMP]: int32: %h, int32_tmp: %h, int32_to_fp32_compensate: %h",int32, int32_tmp, int32_to_fp32_compensate);
-     `endif
+*/
+     // `ifdef TARGET_SIMULATION
+     //      $display("[TIME: %0t, INFO: INT32_FP32_COMP]: int32: %h, exp: %h int32_tmp: %h, int32_to_fp32_compensate: %h",$time(),int32, fp32_exponent, int32_tmp, int32_to_fp32_compensate);
+     // `endif
 endfunction
 
 function automatic ara_pkg::fp32_t int8_to_fp32_dequantize(logic [31:0] int32,logic [7:0] scaling_factor);
@@ -902,8 +1184,8 @@ function automatic ara_pkg::fp32_t int8_to_fp32_dequantize(logic [31:0] int32,lo
     endcase
 
      `ifdef TARGET_SIMULATION
-          $display("[INFO: FP32_INT8_DQ]: int32: %h, int32_deq: %h, int8_to_fp32_dequantize: %h",int32, int32_deq, int8_to_fp32_dequantize); 
-          $display("scaling_factor_recpi: %h, full_m_scaling_factor_recpi: %h",scaling_factor_recpi, full_m_scaling_factor_recpi); 
+          // $display("[INFO: FP32_INT8_DQ]: int32: %h, int32_deq: %h, int8_to_fp32_dequantize: %h",int32, int32_deq, int8_to_fp32_dequantize); 
+          // $display("scaling_factor_recpi: %h, full_m_scaling_factor_recpi: %h",scaling_factor_recpi, full_m_scaling_factor_recpi); 
      `endif
 
 endfunction
