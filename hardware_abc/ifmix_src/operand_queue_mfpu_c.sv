@@ -470,7 +470,7 @@ fifo_v3 #(
       end
 
       // gukai:20250306  reorganize the operand
-      OpQueueConversionFPINT: begin
+      OpQueueConversionF32I8: begin
         unique case (cmd.eew)
           EW8: ;
           EW16: ;
@@ -567,7 +567,7 @@ fifo_v3 #(
 
       // Finished using an operand
       // gukai@20250302
-      if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone || cmd.conv == OpQueueConversionFPINT) ibuf_pop = 1'b1;
+      if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone || cmd.conv == OpQueueConversionF32I8) ibuf_pop = 1'b1;
 
       // Finished execution
       if (elem_count_d >= cmd.elem_count) begin : finished_elems

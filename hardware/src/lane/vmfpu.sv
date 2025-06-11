@@ -446,6 +446,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW64]      ),
     .ready_i    (vmul_simd_out_ready[EW64]     ),
     .valid_o    (vmul_simd_out_valid[EW64]     ),
+    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
     .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
@@ -469,6 +470,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW32]      ),
     .ready_i    (vmul_simd_out_ready[EW32]     ),
     .valid_o    (vmul_simd_out_valid[EW32]     ),
+    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
     .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
@@ -492,6 +494,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW16]      ),
     .ready_i    (vmul_simd_out_ready[EW16]     ),
     .valid_o    (vmul_simd_out_valid[EW16]     ),
+    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
     .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 
@@ -515,6 +518,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW8]       ),
     .ready_i    (vmul_simd_out_ready[EW8]      ),
     .valid_o    (vmul_simd_out_valid[EW8]      ),
+    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
     .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
   );
 

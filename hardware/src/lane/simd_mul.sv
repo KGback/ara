@@ -35,6 +35,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     output logic       ready_o,
     input  logic       ready_i,
     output logic       valid_o,
+    input  logic [1:0]        transfer_type, // gukai@20250609
     input  logic [15:0]       transfer_data  // gukai@20250524
   );
 
@@ -55,6 +56,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   ara_op_e      op;
 
   logic [1:0][64-1:0] result_tmp;  // gukai@20250524
+  logic [1:0][7:0]    fp32_exponent;  // gukai@20250610
 
   ///////////////////////
   //  Pipeline stages  //
@@ -212,8 +214,9 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
         // Single-Width integer multiply instructions
         VIFMM:   // gukai@20250303
           for (int l = 0; l < 2; l++) begin
-            result_tmp[l][63:0] = mul_res.w64[l] + {{32{opc.w32[l][31]}}, opc.w32[l]} ;
-            result_o[32*l +: 32] = int32_to_fp32_compensate ( result_tmp[l][63:0], transfer_data[8*l +: 8] ) ;
+            result_tmp[l][63:0]     = mul_res.w64[l] + {{32{opc.w32[l][31]}}, opc.w32[l]} ;
+            fp32_exponent[l][7:0]   = transfer_type[l] ? (transfer_data[8*l +: 8] - 'd6) : (transfer_data[8*l +: 8] - 'd30) ;
+            result_o[32*l +: 32]    = int_to_fp32 ( result_tmp[l][63:0], fp32_exponent[l][7:0] ) ;
           end
         VMUL: for (int l = 0; l < 2; l++) result_o[32*l +: 32] = mul_res.w64[l][31:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin

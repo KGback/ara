@@ -1,5 +1,5 @@
 # This script was generated automatically by bender.
-set ROOT "/home/data/projects/kg_projs/rvv_llm_proj/ara"
+set ROOT "/home/kevin/projs/github/ara"
 
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
@@ -8,6 +8,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -33,6 +34,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -50,6 +52,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -66,6 +69,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -87,6 +91,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -103,6 +108,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -121,6 +127,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -138,6 +145,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -202,6 +210,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -248,6 +257,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -265,6 +275,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -296,6 +307,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -320,6 +332,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -392,6 +405,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -413,6 +427,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -435,7 +450,19 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/deps/fpnew/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_dp.v" \
     "$ROOT/hardware/deps/fpnew/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_frbus.v" \
     "$ROOT/hardware/deps/fpnew/vendor/opene906/E906_RTL_FACTORY/gen_rtl/fpu/rtl/pa_fpu_src_type.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ctrl.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_double.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_ff1.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_pack.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_prepare.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_round.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_scalar_dp.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_bound_table.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt_radix16_with_sqrt.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_srt.v" \
+    "$ROOT/hardware/deps/fpnew/vendor/openc910/C910_RTL_FACTORY/gen_rtl/vfdsu/rtl/ct_vfdsu_top.v" \
     "$ROOT/hardware/deps/fpnew/src/fpnew_divsqrt_th_32.sv" \
+    "$ROOT/hardware/deps/fpnew/src/fpnew_divsqrt_th_64_multi.sv" \
     "$ROOT/hardware/deps/fpnew/src/fpnew_divsqrt_multi.sv" \
     "$ROOT/hardware/deps/fpnew/src/fpnew_fma.sv" \
     "$ROOT/hardware/deps/fpnew/src/fpnew_fma_multi.sv" \
@@ -457,6 +484,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -480,6 +508,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -498,12 +527,16 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
     +define+TARGET_VSIM \
     +define+VLEN=4096 \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
     "$ROOT/hardware/deps/cva6/core/include/config_pkg.sv"
@@ -516,21 +549,19 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
     +define+TARGET_VSIM \
     +define+VLEN=4096 \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
-    "$ROOT/hardware/deps/cva6/core/include/cv64a6_imafdcv_sv39_config_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/include/riscv_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/include/ariane_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/mmu_sv39/tlb.sv" \
-    "$ROOT/hardware/deps/cva6/core/mmu_sv39/mmu.sv" \
-    "$ROOT/hardware/deps/cva6/core/mmu_sv39/ptw.sv" \
-    "$ROOT/hardware/deps/cva6/corev_apu/tb/common/mock_uart.sv"
+    "$ROOT/hardware/deps/cva6/core/include/cv64a6_imafdcv_sv39_config_pkg.sv"
 }]} {return 1}
 
 if {[catch {vlog -incr -sv \
@@ -540,23 +571,77 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
     +define+TARGET_VSIM \
     +define+VLEN=4096 \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
+    "+incdir+$ROOT/hardware/deps/axi/include" \
+    "+incdir+$ROOT/hardware/deps/common_cells/include" \
+    "$ROOT/hardware/deps/cva6/core/include/riscv_pkg.sv" \
+    "$ROOT/hardware/deps/cva6/core/include/ariane_pkg.sv" \
+    "$ROOT/hardware/deps/cva6/core/include/build_config_pkg.sv"
+}]} {return 1}
+
+if {[catch {vlog -incr -sv \
+    -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
+    +define+ARIANE_ACCELERATOR_PORT=1 \
+    +define+NR_LANES=4 \
+    +define+TARGET_ARA_TEST \
+    +define+TARGET_CV64A6_IMAFDCV_SV39 \
+    +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
+    +define+TARGET_RTL \
+    +define+TARGET_SIMULATION \
+    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
+    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
+    +define+TARGET_VSIM \
+    +define+VLEN=4096 \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
+    "+incdir+$ROOT/hardware/deps/axi/include" \
+    "+incdir+$ROOT/hardware/deps/common_cells/include" \
+    "$ROOT/hardware/deps/cva6/core/cva6_mmu/cva6_tlb.sv" \
+    "$ROOT/hardware/deps/cva6/core/cva6_mmu/cva6_shared_tlb.sv" \
+    "$ROOT/hardware/deps/cva6/core/cva6_mmu/cva6_mmu.sv" \
+    "$ROOT/hardware/deps/cva6/core/cva6_mmu/cva6_ptw.sv"
+}]} {return 1}
+
+if {[catch {vlog -incr -sv \
+    -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
+    +define+ARIANE_ACCELERATOR_PORT=1 \
+    +define+NR_LANES=4 \
+    +define+TARGET_ARA_TEST \
+    +define+TARGET_CV64A6_IMAFDCV_SV39 \
+    +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
+    +define+TARGET_RTL \
+    +define+TARGET_SIMULATION \
+    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
+    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
+    +define+TARGET_VSIM \
+    +define+VLEN=4096 \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
     "$ROOT/hardware/deps/cva6/core/include/wt_cache_pkg.sv" \
     "$ROOT/hardware/deps/cva6/core/include/std_cache_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/include/acc_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/include/instr_tracer_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/core/include/cvxif_pkg.sv" \
     "$ROOT/hardware/deps/cva6/core/cvxif_example/include/cvxif_instr_pkg.sv" \
     "$ROOT/hardware/deps/cva6/core/cvxif_fu.sv" \
+    "$ROOT/hardware/deps/cva6/core/cvxif_issue_register_commit_if_driver.sv" \
+    "$ROOT/hardware/deps/cva6/core/cvxif_compressed_if_driver.sv" \
     "$ROOT/hardware/deps/cva6/core/cvxif_example/cvxif_example_coprocessor.sv" \
     "$ROOT/hardware/deps/cva6/core/cvxif_example/instr_decoder.sv" \
+    "$ROOT/hardware/deps/cva6/core/cva6_rvfi_probes.sv" \
+    "$ROOT/hardware/deps/cva6/core/cva6_fifo_v3.sv" \
     "$ROOT/hardware/deps/cva6/core/cva6.sv" \
     "$ROOT/hardware/deps/cva6/core/alu.sv" \
     "$ROOT/hardware/deps/cva6/core/fpu_wrap.sv" \
@@ -567,7 +652,9 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/deps/cva6/core/csr_regfile.sv" \
     "$ROOT/hardware/deps/cva6/core/decoder.sv" \
     "$ROOT/hardware/deps/cva6/core/ex_stage.sv" \
+    "$ROOT/hardware/deps/cva6/core/acc_dispatcher.sv" \
     "$ROOT/hardware/deps/cva6/core/instr_realign.sv" \
+    "$ROOT/hardware/deps/cva6/core/macro_decoder.sv" \
     "$ROOT/hardware/deps/cva6/core/id_stage.sv" \
     "$ROOT/hardware/deps/cva6/core/issue_read_operands.sv" \
     "$ROOT/hardware/deps/cva6/core/issue_stage.sv" \
@@ -586,8 +673,6 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/deps/cva6/core/store_unit.sv" \
     "$ROOT/hardware/deps/cva6/core/commit_stage.sv" \
     "$ROOT/hardware/deps/cva6/core/axi_shim.sv" \
-    "$ROOT/hardware/deps/cva6/core/acc_dispatcher.sv" \
-    "$ROOT/hardware/deps/cva6/core/cva6_rvfi_probes.sv" \
     "$ROOT/hardware/deps/cva6/core/frontend/btb.sv" \
     "$ROOT/hardware/deps/cva6/core/frontend/bht.sv" \
     "$ROOT/hardware/deps/cva6/core/frontend/ras.sv" \
@@ -599,9 +684,9 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/wt_dcache_missunit.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/wt_dcache_wbuffer.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/wt_dcache.sv" \
-    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_icache.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/wt_cache_subsystem.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/wt_axi_adapter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_icache.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/tag_cmp.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/cache_ctrl.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/amo_alu.sv" \
@@ -610,8 +695,64 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/std_nbdcache.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_icache_axi_wrapper.sv" \
     "$ROOT/hardware/deps/cva6/core/cache_subsystem/std_cache_subsystem.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_pkg.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_resp_demux.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_to_axi_read.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_to_axi_write.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_read_arbiter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/utils/hpdcache_mem_req_write_arbiter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_demux.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_lfsr.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_sync_buffer.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_fifo_reg.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_fifo_reg_initialized.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_fxarb.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_rrarb.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_mux.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_decoder.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_1hot_to_binary.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_prio_1hot_encoder.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_sram.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_sram_wbyteenable.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_sram_wmask.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_regbank_wbyteenable_1rw.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_regbank_wmask_1rw.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_data_downsize.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_data_upsize.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/common/hpdcache_data_resize.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hwpf_stride/hwpf_stride_pkg.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hwpf_stride/hwpf_stride.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hwpf_stride/hwpf_stride_arb.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hwpf_stride/hwpf_stride_wrapper.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_amo.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_cmo.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_core_arbiter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_ctrl.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_ctrl_pe.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_memctrl.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_miss_handler.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_mshr.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_rtab.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_uncached.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_victim_plru.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_victim_random.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_victim_sel.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_wbuf.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/src/hpdcache_flush.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_hpdcache_if_adapter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_hpdcache_subsystem_axi_arbiter.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_hpdcache_subsystem.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/cva6_hpdcache_wrapper.sv" \
+    "$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache_tc_sram.sv" \
     "$ROOT/hardware/deps/cva6/core/pmp/src/pmp.sv" \
-    "$ROOT/hardware/deps/cva6/core/pmp/src/pmp_entry.sv"
+    "$ROOT/hardware/deps/cva6/core/pmp/src/pmp_entry.sv" \
+    "$ROOT/hardware/deps/cva6/core/pmp/src/pmp_data_if.sv" \
+    "$ROOT/hardware/deps/cva6/vendor/pulp-platform/fpga-support/fpga-support-stubs.sv" \
+    "$ROOT/hardware/deps/cva6/common/local/util/tc_sram_wrapper.sv" \
+    "$ROOT/hardware/deps/cva6/common/local/util/tc_sram_wrapper_cache_techno.sv" \
+    "$ROOT/hardware/deps/cva6/common/local/util/sram_pulp.sv" \
+    "$ROOT/hardware/deps/cva6/common/local/util/sram_cache.sv"
 }]} {return 1}
 
 if {[catch {vlog -incr -sv \
@@ -621,44 +762,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
-    +define+TARGET_RTL \
-    +define+TARGET_SIMULATION \
-    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
-    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
-    +define+TARGET_VSIM \
-    +define+VLEN=4096 \
-    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
-    "+incdir+$ROOT/hardware/deps/axi/include" \
-    "+incdir+$ROOT/hardware/deps/common_cells/include" \
-    "$ROOT/hardware/deps/cva6/common/local/util/sram_pulp.sv"
-}]} {return 1}
-
-if {[catch {vlog -incr -sv \
-    -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
-    +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
-    +define+TARGET_ARA_TEST \
-    +define+TARGET_CV64A6_IMAFDCV_SV39 \
-    +define+TARGET_CVA6_TEST \
-    +define+TARGET_RTL \
-    +define+TARGET_SIMULATION \
-    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
-    +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_SRAM \
-    +define+TARGET_VSIM \
-    +define+VLEN=4096 \
-    "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
-    "+incdir+$ROOT/hardware/deps/axi/include" \
-    "+incdir+$ROOT/hardware/deps/common_cells/include" \
-    "$ROOT/hardware/deps/cva6/common/local/util/tc_sram_wrapper.sv"
-}]} {return 1}
-
-if {[catch {vlog -incr -sv \
-    -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
-    +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
-    +define+TARGET_ARA_TEST \
-    +define+TARGET_CV64A6_IMAFDCV_SV39 \
-    +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -667,11 +771,11 @@ if {[catch {vlog -incr -sv \
     +define+VLEN=4096 \
     "+incdir+$ROOT/hardware/deps/cva6/core/include" \
     "+incdir+$ROOT/hardware/deps/cva6/common/local/util" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
     "$ROOT/hardware/deps/cva6/core/include/instr_tracer_pkg.sv" \
-    "$ROOT/hardware/deps/cva6/common/local/util/instr_tracer.sv" \
-    "$ROOT/hardware/deps/cva6/common/local/util/instr_tracer_if.sv"
+    "$ROOT/hardware/deps/cva6/common/local/util/instr_tracer.sv"
 }]} {return 1}
 
 if {[catch {vlog -incr -sv \
@@ -681,6 +785,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -690,6 +795,8 @@ if {[catch {vlog -incr -sv \
     "+incdir+$ROOT/hardware/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/apb/include" \
     "$ROOT/hardware/include/rvv_pkg.sv" \
     "$ROOT/hardware/include/ara_pkg.sv" \
@@ -703,7 +810,6 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/src/lane/lane_sequencer.sv" \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_a.sv"  \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_b.sv"   \
-    "$ROOT/hardware/ifmix_src/operand_queue_mfpu_c.sv"   \
     "$ROOT/hardware/ifmix_src/outlier_judge.sv" 	\
     "$ROOT/hardware/src/lane/operand_queue.sv" \
     "$ROOT/hardware/src/lane/operand_requester.sv" \
@@ -739,6 +845,7 @@ if {[catch {vlog -incr -sv \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
+    +define+TARGET_EXCLUDE_FIRST_PASS_DECODER \
     +define+TARGET_RTL \
     +define+TARGET_SIMULATION \
     +define+TARGET_TECH_CELLS_GENERIC_INCLUDE_TC_CLK \
@@ -748,7 +855,10 @@ if {[catch {vlog -incr -sv \
     "+incdir+$ROOT/hardware/include" \
     "+incdir+$ROOT/hardware/deps/axi/include" \
     "+incdir+$ROOT/hardware/deps/common_cells/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/include" \
+    "+incdir+$ROOT/hardware/deps/cva6/core/cache_subsystem/hpdcache/rtl/include" \
     "+incdir+$ROOT/hardware/deps/apb/include" \
+    "$ROOT/hardware/deps/cva6/corev_apu/tb/common/mock_uart.sv" \
     "$ROOT/hardware/tb/ara_testharness.sv" \
     "$ROOT/hardware/tb/ara_tb.sv" \
     "$ROOT/hardware/src/accel_dispatcher_ideal.sv"

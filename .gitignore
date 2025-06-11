@@ -35,5 +35,4 @@ pyenv_ara/
 docs/build/
 docs/source/_templates/
 hardware/deps
-hardware_abc/deps
-hardware_abc/build
+hardware_abc/
