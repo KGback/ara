@@ -35,12 +35,12 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     input  logic                              operand_valid_i,
     input  logic                              operand_issued_i,
     output logic                              operand_queue_ready_o,
-    input transfer_pack_t     [1:0]           transfer_pack_i,
     // Interface with the functional units
     output elen_t                             operand_o,
     output target_fu_e                        operand_target_fu_o,
     output logic                              operand_valid_o,
-    input  logic               [NrSlaves-1:0] operand_ready_i
+    input  logic               [NrSlaves-1:0] operand_ready_i,
+    output vifmm_conversion_e                vifmm_cov_type_o  // gukai@20250523
   );
 
   //////////////////////
@@ -83,9 +83,46 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
   logic  ibuf_operand_valid;
   logic  ibuf_empty;
   logic  ibuf_pop;
+  // gukai@20250620: one fifo is divided into four fifo
+  logic   [3:0] operand_push_valid, operand_push_valid_d;
+  logic   [3:0] operand_pop_valid, operand_pop_valid_d;
+  logic   [3:0] ibuf_empty_pop;
+  elen_t  [3:0] ibuf_operand_pop;   
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      operand_push_valid <= 4'b0001;
+      operand_pop_valid <= 4'b0001;
+    end else begin
+      if (operand_valid_i) begin
+        operand_push_valid <= operand_push_valid_d;
+      end else begin
+        operand_push_valid <= operand_push_valid;
+      end
+
+      if (ibuf_pop) begin
+        operand_pop_valid <= operand_pop_valid_d;
+      end else begin
+        operand_pop_valid <= operand_pop_valid;
+      end
+      
+    end
+  end
+
+  always_comb begin
+    operand_push_valid_d = {operand_push_valid[2:0], operand_push_valid[3]};  // 1 left-shift 
+    operand_pop_valid_d  = {operand_pop_valid[2:0], operand_pop_valid[3]};  // 1 left-shift 
+
+    ibuf_operand = {{64{operand_pop_valid[0]}} & ibuf_operand_pop[0]} | 
+                   {{64{operand_pop_valid[1]}} & ibuf_operand_pop[1]} |
+                   {{64{operand_pop_valid[2]}} & ibuf_operand_pop[2]} |
+                   {{64{operand_pop_valid[3]}} & ibuf_operand_pop[3]};
+    ibuf_empty   = &ibuf_empty_pop[3:0];
+    
+  end
 
   fifo_v3 #(
-    .DEPTH     (DataBufDepth),
+    .DEPTH     (DataBufDepth-3),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer (
     .clk_i     (clk_i          ),
@@ -93,40 +130,66 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
     .data_i    (operand_i      ),
-    .push_i    (operand_valid_i),
+    .push_i    (operand_push_valid[0] & operand_valid_i),
     .full_o    (/* Unused */   ),
-    .data_o    (ibuf_operand   ),
-    .pop_i     (ibuf_pop       ),
-    .empty_o   (ibuf_empty     ),
+    .data_o    (ibuf_operand_pop[0]   ),
+    .pop_i     (operand_pop_valid[0] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[0]     ),
     .usage_o   (/* Unused */   )
   );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_1 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[1] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[1]   ),
+    .pop_i     (operand_pop_valid[1] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[1]     ),
+    .usage_o   (/* Unused */   )
+  );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_2 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[2] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[2]   ),
+    .pop_i     (operand_pop_valid[2] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[2]     ),
+    .usage_o   (/* Unused */   )
+  );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_3 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[3] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[3]   ),
+    .pop_i     (operand_pop_valid[3] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[3]     ),
+    .usage_o   (/* Unused */   )
+  );
+
   assign ibuf_operand_valid = !ibuf_empty;
-
-
-// gukai@20250216
-///////////////////////////////////////////////////
-//   Before fifo, we judge for transfer_pack     //
-
-transfer_pack_t [1:0]  transfer_pack;
-
-fifo_v3 #(
-  .DEPTH(       DataBufDepth  ),
-  .DATA_WIDTH(  9*2          )
-) i_transpack_buffer (
-  .clk_i     (clk_i                    ),
-  .rst_ni    (rst_ni                   ),
-  .testmode_i(1'b0                     ),
-  .flush_i   (flush_i                  ),
-  .data_i    ({transfer_pack_i[1],transfer_pack_i[0]}       ),
-  .push_i    (operand_valid_i          ),
-  .full_o    (/* Unused */             ),
-  .data_o    ({transfer_pack[1],transfer_pack[0]}           ),
-  .empty_o   (/* Unused */             ),
-  .pop_i     (ibuf_pop                  ),
-  .usage_o   (/* Unused */             )
-);
-
-
 
   // We used a credit based system, to ensure that the FIFO is always
   // able to accept a request.
@@ -471,24 +534,7 @@ fifo_v3 #(
 
       // gukai:20250306  reorganize the operand
       OpQueueConversionF32I8: begin
-        unique case (cmd.eew)
-          EW8: ;
-          EW16: ;
-          EW32:  begin
-            if (transfer_pack[1].transfer_type) begin
-                conv_operand[63:32] = fp32_to_int8_quantize(ibuf_operand[63:32], transfer_pack[1].transfer_data);
-            end else begin
-                conv_operand[63:32] = fp32_to_int32_compensate(ibuf_operand[63:32], transfer_pack[1].transfer_data);
-            end
-
-            if (transfer_pack[0].transfer_type) begin
-                conv_operand[31:0] = fp32_to_int8_quantize(ibuf_operand[31:0], transfer_pack[0].transfer_data );
-            end else begin
-                conv_operand[31:0] = fp32_to_int32_compensate(ibuf_operand[31:0], transfer_pack[0].transfer_data );
-            end
-          end
-          default:;
-        endcase
+        conv_operand = ibuf_operand;
       end
 
       // Pad with neutral values the MSb of an incomplete 64-bit packet

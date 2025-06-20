@@ -5,6 +5,6 @@
 # Author: Matheus Cavalcante <matheusd@iis.ee.ethz.ch>
 
 # do ../scripts/wave.tcl
-do ../scripts/wave_kg.tcl
+do ../../hardware/scripts/wave_kg.tcl
 log -r /*
 run -a

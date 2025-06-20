@@ -65,16 +65,29 @@ always_comb begin
         transfer_pack_o[1].transfer_type       = 1;
         transfer_pack_o[0].transfer_type       = 1;
       `else
-        if ( operand_a[1].e[7] || (& operand_a[1].e[6:0] || operand_c[1].e[7] || (& operand_c[1].e[6:0] ) ) ) begin
-            transfer_pack_o[1].transfer_type       = 0;
-        end else begin
-            transfer_pack_o[1].transfer_type       = 1;
-        end                                                     
+        // if ( operand_a[1].e[7] || (& operand_a[1].e[6:0] || operand_c[1].e[7] || (& operand_c[1].e[6:0] ) ) ) begin
+        //     transfer_pack_o[1].transfer_type       = 0;
+        // end else begin
+        //     transfer_pack_o[1].transfer_type       = 1;
+        // end                                                     
 
-        if ( operand_a[0].e[7] || (& operand_a[0].e[6:0] ) || operand_c[0].e[7] || (& operand_c[0].e[6:0] ) ) begin
-            transfer_pack_o[0].transfer_type       = 0;
-        end else begin
-            transfer_pack_o[0].transfer_type       = 1;
+        // if ( operand_a[0].e[7] || (& operand_a[0].e[6:0] ) || operand_c[0].e[7] || (& operand_c[0].e[6:0] ) ) begin
+        //     transfer_pack_o[0].transfer_type       = 0;
+        // end else begin
+        //     transfer_pack_o[0].transfer_type       = 1;
+        // end
+        for (int l = 0; l < 2; l++) begin
+            // if ( operand_a[l].e[7] || (| operand_a[l].e[6:1] || operand_c[l].e[7] || (| operand_c[l].e[6:1] ) ) ) begin   // 8
+            // if ( operand_a[l].e[7] || (| operand_a[l].e[6:0] || operand_c[l].e[7] || (| operand_c[l].e[6:0] ) ) ) begin   // 4
+            // if ( operand_a[l].e[7] || operand_c[l].e[7] ) begin   // 2
+            // if ( operand_a[l].e[7] || (& operand_a[l].e[6:0] || operand_c[l].e[7] || (& operand_c[l].e[6:0] ) ) ) begin   // 1
+            if ( operand_a[l].e[7] || (& operand_a[l].e[6:1] ) || operand_c[l].e[7] || (& operand_c[l].e[6:1] ) ) begin   // 0.5
+            // if ( operand_a[l].e[7] || (& operand_a[l].e[6:2] ) || operand_c[l].e[7] || (& operand_c[l].e[6:2] ) ) begin   // 0.25
+            // if ( operand_a[l].e[7] || (& operand_a[l].e[6:3] ) || operand_c[l].e[7] || (& operand_c[l].e[6:3] ) ) begin   // 0.125
+                transfer_pack_o[l].transfer_type       = 0;
+            end else begin
+                transfer_pack_o[l].transfer_type       = 1;
+            end                                         
         end
       `endif
 

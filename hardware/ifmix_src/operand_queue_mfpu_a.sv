@@ -84,9 +84,46 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
   logic  ibuf_operand_valid;
   logic  ibuf_empty;
   logic  ibuf_pop;
+  // gukai@20250620: one fifo is divided into four fifo
+  logic   [3:0] operand_push_valid, operand_push_valid_d;
+  logic   [3:0] operand_pop_valid, operand_pop_valid_d;
+  logic   [3:0] ibuf_empty_pop;
+  elen_t  [3:0] ibuf_operand_pop;   
+
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      operand_push_valid <= 4'b0001;
+      operand_pop_valid <= 4'b0001;
+    end else begin
+      if (operand_valid_i) begin
+        operand_push_valid <= operand_push_valid_d;
+      end else begin
+        operand_push_valid <= operand_push_valid;
+      end
+
+      if (ibuf_pop) begin
+        operand_pop_valid <= operand_pop_valid_d;
+      end else begin
+        operand_pop_valid <= operand_pop_valid;
+      end
+      
+    end
+  end
+
+  always_comb begin
+    operand_push_valid_d = {operand_push_valid[2:0], operand_push_valid[3]};  // 1 left-shift 
+    operand_pop_valid_d  = {operand_pop_valid[2:0], operand_pop_valid[3]};  // 1 left-shift 
+
+    ibuf_operand = {{64{operand_pop_valid[0]}} & ibuf_operand_pop[0]} | 
+                   {{64{operand_pop_valid[1]}} & ibuf_operand_pop[1]} |
+                   {{64{operand_pop_valid[2]}} & ibuf_operand_pop[2]} |
+                   {{64{operand_pop_valid[3]}} & ibuf_operand_pop[3]};
+    ibuf_empty   = &ibuf_empty_pop[3:0];
+    
+  end
 
   fifo_v3 #(
-    .DEPTH     (DataBufDepth),
+    .DEPTH     (DataBufDepth-3),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer (
     .clk_i     (clk_i          ),
@@ -94,13 +131,65 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
     .data_i    (operand_i      ),
-    .push_i    (operand_valid_i),
+    .push_i    (operand_push_valid[0] & operand_valid_i),
     .full_o    (/* Unused */   ),
-    .data_o    (ibuf_operand   ),
-    .pop_i     (ibuf_pop       ),
-    .empty_o   (ibuf_empty     ),
+    .data_o    (ibuf_operand_pop[0]   ),
+    .pop_i     (operand_pop_valid[0] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[0]     ),
     .usage_o   (/* Unused */   )
   );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_1 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[1] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[1]   ),
+    .pop_i     (operand_pop_valid[1] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[1]     ),
+    .usage_o   (/* Unused */   )
+  );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_2 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[2] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[2]   ),
+    .pop_i     (operand_pop_valid[2] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[2]     ),
+    .usage_o   (/* Unused */   )
+  );
+
+  fifo_v3 #(
+    .DEPTH     (1),
+    .DATA_WIDTH(DataWidth   )
+  ) i_input_buffer_3 (
+    .clk_i     (clk_i          ),
+    .rst_ni    (rst_ni         ),
+    .testmode_i(1'b0           ),
+    .flush_i   (flush_i        ),
+    .data_i    (operand_i      ),
+    .push_i    (operand_push_valid[3] & operand_valid_i),
+    .full_o    (/* Unused */   ),
+    .data_o    (ibuf_operand_pop[3]   ),
+    .pop_i     (operand_pop_valid[3] & ibuf_pop       ),
+    .empty_o   (ibuf_empty_pop[3]     ),
+    .usage_o   (/* Unused */   )
+  );
+
   assign ibuf_operand_valid = !ibuf_empty;
 
   // We used a credit based system, to ensure that the FIFO is always
