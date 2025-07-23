@@ -217,7 +217,7 @@ int test3(float* x_fp32, int8_t* w_int8) {
     for (int i = 0; i < VEC_SIZE_3; i++)
     {
       gold_fp32[i] = (float)w_int8[i] * x_fp32[i] + (float)xinit[i] ;
-      printf(" %.10f \t", gold_fp32[i]);
+      // printf(" %.10f \t", gold_fp32[i]);
     }
     printf("\n");
 
@@ -225,7 +225,7 @@ int test3(float* x_fp32, int8_t* w_int8) {
     printf("VIFMM RES:");
     for (int i = 0; i < VEC_SIZE_3; i++)
     {
-      printf(" %.10f \t", res_vifmm[i]);
+      // printf(" %.10f \t", res_vifmm[i]);
     }
     printf("\n");
     printf("VIFMM ULP:");
@@ -242,7 +242,7 @@ int test3(float* x_fp32, int8_t* w_int8) {
     {
       res_qx_tmp = (int16_t)w_int8[i] * (int16_t)qx[i];
       res_qx_fp32[i] = (float)res_qx_tmp * scale + (float)xinit[i];
-      printf(" %.10f \t", res_qx_fp32[i]);
+      // printf(" %.10f \t", res_qx_fp32[i]);
     }
     printf("\n");
     printf("X FP32 TO INT8 ULP:");
@@ -254,6 +254,7 @@ int test3(float* x_fp32, int8_t* w_int8) {
     
     return 1;
 }
+
 
 
 int main() {

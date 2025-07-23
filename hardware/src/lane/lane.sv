@@ -432,8 +432,11 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   logic sldu_addrgen_operand_opqueues_valid;
 
   // gukai@20250523
-  transfer_pack_t     [1:0]                 vifmm_transfer_pack;
-  vifmm_conversion_e                vifmm_cov_type;
+  // transfer_pack_t     [1:0]                 vifmm_transfer_pack;
+  // vifmm_conversion_e                vifmm_cov_type;
+  logic [3:0] [1:0]                          transfer_type;
+  logic [3:0] [15:0]                         transfer_data;
+  logic                                       transfer_all_quantize_en;
 
   operand_queues_stage #(
     .NrLanes            (NrLanes            ),
@@ -481,7 +484,9 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_operand_o                   (mask_operand_o[1:0]                ),
     .mask_operand_valid_o             (mask_operand_valid_o[1:0]          ),
     .mask_operand_ready_i             (mask_operand_ready_i[1:0]          ),
-    .vifmm_cov_type_o                    (vifmm_cov_type            )
+    .transfer_type_o                  ( transfer_type ), // gukai@20250627
+    .transfer_data_o                  ( transfer_data ), // gukai@20250627
+    .transfer_all_quantize_en_o      ( transfer_all_quantize_en ) // gukai@20250627
   );
 
   ///////////////////////////////
@@ -489,21 +494,21 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   ///////////////////////////////
 
   // gukai@20250523
-  elen_t [2:0] mfpu_operand_vifmm;
+  // elen_t [2:0] mfpu_operand_vifmm;
 
-  outlier_judge #(
-    .outlier_thd_static(ifmix_pkg::OLR_THD)    
-  ) i_outlier_judge (
-    .clk_i                    ( clk_i               ),  
-    .rst_ni                   ( rst_ni                ),  
-    .flush_i                  ( flush_i               ),    
-    .conver_type_i            ( vifmm_cov_type ),    
-    .operand_i                ( mfpu_operand ),
-    .operand_valid_i          ( mfpu_operand_valid ),
-    .operand_o                ( mfpu_operand_vifmm ),
-    .transfer_pack_o          ( vifmm_transfer_pack   ),        
-    .transfer_pack_valid_o    ( )
-  );
+  // outlier_judge #(
+  //   .outlier_thd_static(ifmix_pkg::OLR_THD)    
+  // ) i_outlier_judge (
+  //   .clk_i                    ( clk_i               ),  
+  //   .rst_ni                   ( rst_ni                ),  
+  //   .flush_i                  ( flush_i               ),    
+  //   .conver_type_i            ( vifmm_cov_type ),    
+  //   .operand_i                ( mfpu_operand ),
+  //   .operand_valid_i          ( mfpu_operand_valid ),
+  //   .operand_o                ( mfpu_operand_vifmm ),
+  //   .transfer_pack_o          ( vifmm_transfer_pack   ),        
+  //   .transfer_pack_valid_o    ( )
+  // );
 
 
   // Reductions
@@ -572,7 +577,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .alu_operand_valid_i  (alu_operand_valid                      ),
     .alu_operand_ready_o  (alu_operand_ready                      ),
     // Multiplier/FPU
-    .mfpu_operand_i       (mfpu_operand_vifmm                    ),  // gukai@20250523. replace mfpu_operand
+    .mfpu_operand_i       (mfpu_operand                           ),  // gukai@20250523. replace mfpu_operand
     .mfpu_operand_valid_i (mfpu_operand_valid                     ),
     .mfpu_operand_ready_o (mfpu_operand_ready                     ),
     // Interface with the Mask unit
@@ -582,7 +587,9 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_i               (mask                                   ),
     .mask_valid_i         (mask_valid                             ),
     .mask_ready_o         (mask_ready                             ),
-    .vifmm_transfer_pack_i            (vifmm_transfer_pack                )
+    .transfer_all_quantize_en_i       (transfer_all_quantize_en),  //gukai@20250626
+    .transfer_type_i        (transfer_type),  //gukai@20250626 
+    .transfer_data_i        (transfer_data)  //gukai@20250626  
   );
 
   /******************************

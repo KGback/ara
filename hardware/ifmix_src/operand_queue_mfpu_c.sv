@@ -36,11 +36,13 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     input  logic                              operand_issued_i,
     output logic                              operand_queue_ready_o,
     // Interface with the functional units
-    output elen_t                             operand_o,
+    output elen_t [3:0]                       operand_o,
     output target_fu_e                        operand_target_fu_o,
     output logic                              operand_valid_o,
     input  logic               [NrSlaves-1:0] operand_ready_i,
-    output vifmm_conversion_e                vifmm_cov_type_o  // gukai@20250523
+    input  logic                              transfer_all_quantize_en_i,
+    output opqueue_conversion_e               conv_vifmm_o, // gukai@20250523
+    output vlen_t                             elem_sum_c_o // gukai@20250708
   );
 
   //////////////////////
@@ -87,7 +89,10 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
   logic   [3:0] operand_push_valid, operand_push_valid_d;
   logic   [3:0] operand_pop_valid, operand_pop_valid_d;
   logic   [3:0] ibuf_empty_pop;
-  elen_t  [3:0] ibuf_operand_pop;   
+  elen_t  [3:0] ibuf_operand_pop;
+
+  assign conv_vifmm_o = cmd.conv ; 
+  assign elem_sum_c_o = cmd.elem_count;  
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
@@ -111,14 +116,19 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   always_comb begin
     operand_push_valid_d = {operand_push_valid[2:0], operand_push_valid[3]};  // 1 left-shift 
-    operand_pop_valid_d  = {operand_pop_valid[2:0], operand_pop_valid[3]};  // 1 left-shift 
+    ibuf_empty           = &ibuf_empty_pop[3:0];
 
-    ibuf_operand = {{64{operand_pop_valid[0]}} & ibuf_operand_pop[0]} | 
-                   {{64{operand_pop_valid[1]}} & ibuf_operand_pop[1]} |
-                   {{64{operand_pop_valid[2]}} & ibuf_operand_pop[2]} |
-                   {{64{operand_pop_valid[3]}} & ibuf_operand_pop[3]};
-    ibuf_empty   = &ibuf_empty_pop[3:0];
-    
+    if (transfer_all_quantize_en_i) begin
+      operand_pop_valid_d = {4{ibuf_pop}};
+      ibuf_operand        = ibuf_operand_pop[0];
+    end else begin
+      operand_pop_valid_d  = {operand_pop_valid[2:0], operand_pop_valid[3]};  // 1 left-shift 
+
+      ibuf_operand = {{64{operand_pop_valid[0]}} & ibuf_operand_pop[0]} | 
+                     {{64{operand_pop_valid[1]}} & ibuf_operand_pop[1]} |
+                     {{64{operand_pop_valid[2]}} & ibuf_operand_pop[2]} |
+                     {{64{operand_pop_valid[3]}} & ibuf_operand_pop[3]};
+    end
   end
 
   fifo_v3 #(
@@ -138,8 +148,9 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .usage_o   (/* Unused */   )
   );
 
+  // gukai@20250624: Must provide 1 more depth to avoid the condition when write data if input_buffer_1/2/3 is full. 
   fifo_v3 #(
-    .DEPTH     (1),
+    .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_1 (
     .clk_i     (clk_i          ),
@@ -156,7 +167,7 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
   );
 
   fifo_v3 #(
-    .DEPTH     (1),
+    .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_2 (
     .clk_i     (clk_i          ),
@@ -173,7 +184,7 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
   );
 
   fifo_v3 #(
-    .DEPTH     (1),
+    .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_3 (
     .clk_i     (clk_i          ),
@@ -188,6 +199,7 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .empty_o   (ibuf_empty_pop[3]     ),
     .usage_o   (/* Unused */   )
   );
+  // gukai@20250620
 
   assign ibuf_operand_valid = !ibuf_empty;
 
@@ -576,7 +588,10 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     elem_count_d     = elem_count_q;
 
     // Send the operand
-    operand_o       = conv_operand;
+    operand_o[0]       = conv_operand;   // gukai@20250625
+    operand_o[1]       = ibuf_operand_pop[1];   // gukai@20250625
+    operand_o[2]       = ibuf_operand_pop[2];   // gukai@20250625
+    operand_o[3]       = ibuf_operand_pop[3];   // gukai@20250625
     operand_valid_o = ibuf_operand_valid;
     // Encode the target functional unit when it is not clear
     // Default encoding: SLDU == 1'b0, ADDRGEN == 1'b1

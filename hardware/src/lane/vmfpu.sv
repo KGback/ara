@@ -66,7 +66,9 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     input  strb_t                        mask_i,
     input  logic                         mask_valid_i,
     output logic                         mask_ready_o,
-    input  transfer_pack_t     [1:0]     vifmm_transfer_pack_i
+    input  logic                         transfer_all_quantize_en_i,
+    input  logic [3:0] [1:0] transfer_type_i, 
+    input  logic [3:0] [15:0]       transfer_data_i  
   );
 
   // Power gating registers
@@ -133,24 +135,25 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
 
   // gukai@20250219
-  transfer_pack_t [1:0] vifmm_transfer_pack_ff1,vifmm_transfer_pack_ff2;
+  logic [3:0] [1:0] transfer_type_ff1,transfer_type_ff2;
+  logic [3:0] [15:0]       transfer_data_ff1,transfer_data_ff2;
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       vinsn_queue_q             <= '0;
       vinsn_issue_q             <= '0;
       // gukai@20250219
-      vifmm_transfer_pack_ff1[1]  <= '0;
-      vifmm_transfer_pack_ff1[0]  <= '0;
-      vifmm_transfer_pack_ff2[1]  <= '0;
-      vifmm_transfer_pack_ff2[0]  <= '0;
+      transfer_type_ff1  <= '0;
+      transfer_type_ff2  <= '0;
+      transfer_data_ff1  <= '0;
+      transfer_data_ff2  <= '0;
     end else begin
       vinsn_queue_q             <= vinsn_queue_d;
       vinsn_issue_q             <= vinsn_issue_d;
-      vifmm_transfer_pack_ff1[1]  <= vifmm_transfer_pack_i[1];
-      vifmm_transfer_pack_ff1[0]  <= vifmm_transfer_pack_i[0];
-      vifmm_transfer_pack_ff2[1]  <= vifmm_transfer_pack_ff1[1];
-      vifmm_transfer_pack_ff2[0]  <= vifmm_transfer_pack_ff1[0];
+      transfer_type_ff1         <= transfer_type_i;
+      transfer_type_ff2         <= transfer_type_ff1;
+      transfer_data_ff1         <= transfer_data_i;
+      transfer_data_ff2         <= transfer_data_ff1;
 
     end
   end
@@ -446,8 +449,9 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW64]      ),
     .ready_i    (vmul_simd_out_ready[EW64]     ),
     .valid_o    (vmul_simd_out_valid[EW64]     ),
-    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
-    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
+    .transfer_all_quantize_en_i (transfer_all_quantize_en_i), // gukai@20250626
+    .transfer_type_i (transfer_type_ff2), // gukai@20250609
+    .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
   simd_mul #(
@@ -470,8 +474,9 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW32]      ),
     .ready_i    (vmul_simd_out_ready[EW32]     ),
     .valid_o    (vmul_simd_out_valid[EW32]     ),
-    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
-    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
+    .transfer_all_quantize_en_i (transfer_all_quantize_en_i), // gukai@20250626
+    .transfer_type_i (transfer_type_ff2), // gukai@20250609
+    .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
   simd_mul #(
@@ -494,8 +499,9 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW16]      ),
     .ready_i    (vmul_simd_out_ready[EW16]     ),
     .valid_o    (vmul_simd_out_valid[EW16]     ),
-    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
-    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
+    .transfer_all_quantize_en_i (transfer_all_quantize_en_i), // gukai@20250626
+    .transfer_type_i (transfer_type_ff2), // gukai@20250609
+    .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
   simd_mul #(
@@ -518,8 +524,9 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW8]       ),
     .ready_i    (vmul_simd_out_ready[EW8]      ),
     .valid_o    (vmul_simd_out_valid[EW8]      ),
-    .transfer_type ({vifmm_transfer_pack_ff2[1].transfer_type, vifmm_transfer_pack_ff2[0].transfer_type}), // gukai@20250609
-    .transfer_data ({vifmm_transfer_pack_ff2[1].transfer_data, vifmm_transfer_pack_ff2[0].transfer_data}) // gukai@20250524
+    .transfer_all_quantize_en_i (transfer_all_quantize_en_i), // gukai@20250626
+    .transfer_type_i (transfer_type_ff2), // gukai@20250609
+    .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
   // The outputs of the SIMD multipliers are read in order
@@ -1693,23 +1700,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
                   result_queue_d[result_queue_write_pnt_q].wdata[b*16 +: 16] = narrowing_shuffled_result[b*16 +: 16];
             end
           end else begin
-            // gukai@20250218 : dequantize or decompensate
-            // if (vinsn_processing_q.op == ara_pkg::VIFMM) begin
-            //   // TODO: Arrange date accroding to transfer_type[2:0]
-            //   if (vifmm_transfer_pack_ff2[1].transfer_type) begin
-            //     result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int8_to_fp32_dequantize(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
-            //   end else begin
-            //     result_queue_d[result_queue_write_pnt_q].wdata[63:32] = int32_to_fp32_compensate(unit_out_result[63:32], vifmm_transfer_pack_ff2[1].transfer_data);
-            //   end
-// 
-            //   if (vifmm_transfer_pack_ff2[0].transfer_type) begin
-            //     result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int8_to_fp32_dequantize(unit_out_result[31:0], vifmm_transfer_pack_ff2[0].transfer_data);
-            //   end else begin
-            //     result_queue_d[result_queue_write_pnt_q].wdata[31:0] = int32_to_fp32_compensate(unit_out_result[31:0],vifmm_transfer_pack_ff2[0].transfer_data);
-            //   end
-            // end else begin
               result_queue_d[result_queue_write_pnt_q].wdata = unit_out_result;
-            // end
           end
           if (!narrowing(vinsn_processing_q.cvt_resize) || !narrowing_select_out_q)
             result_queue_d[result_queue_write_pnt_q].be =

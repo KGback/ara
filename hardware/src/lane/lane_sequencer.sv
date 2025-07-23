@@ -487,7 +487,7 @@ module lane_sequencer import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg::
             id         : pe_req.id,
             vs         : pe_req.swap_vs2_vd_op ? pe_req.vs2            : pe_req.vd,
             eew        : pe_req.swap_vs2_vd_op ? pe_req.eew_vs2        : pe_req.eew_vd_op,
-            conv       : pe_req.swap_vs2_vd_op ? pe_req.conversion_vs2 : OpQueueConversionNone,
+            conv       : pe_req.swap_vs2_vd_op ? pe_req.conversion_vs2 : (pe_req.op == VIFMM ? OpQueueConversionF32I8 : OpQueueConversionNone), // gukai@20250707
             scale_vl   : pe_req.scale_vl,
             cvt_resize : pe_req.cvt_resize,
             // If reductions and vl == 0, we must replace the operands with neutral

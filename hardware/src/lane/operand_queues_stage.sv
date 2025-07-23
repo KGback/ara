@@ -54,7 +54,9 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     output logic               [1:0]                 mask_operand_valid_o,
     input  logic               [1:0]                 mask_operand_ready_i,
 
-    output vifmm_conversion_e                vifmm_cov_type_o
+    output logic [3:0] [1:0]                          transfer_type_o,
+    output logic [3:0] [15:0]                         transfer_data_o,
+    output logic                                    transfer_all_quantize_en_o
   );
 
   `include "common_cells/registers.svh"
@@ -130,10 +132,63 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
   //  Multiplier/FPU  //
   //////////////////////
 
+  // gukai@20250625: CONTROL module for choosing  quantization or compensation
+  logic [3:0] [1:0]                          transfer_type;
+  logic [3:0] [15:0]                         transfer_data;
+  logic                                    transfer_full_valid;
+  elen_t [3:0]                            mfpu_operand_a, mfpu_operand_c;
+  logic                                    transfer_all_quantize_en;
+  logic                                    cmd_dead;
+  logic[$clog2(VLEN+1)-1:0]                elem_sum_a, elem_sum_c;
+  opqueue_conversion_e                     conv_vifmm_Pre, conv_vifmm_a, conv_vifmm_b, conv_vifmm_c;
+
+  assign transfer_type_o        = transfer_type;
+  assign transfer_data_o        = transfer_data;
+  assign transfer_all_quantize_en_o        = transfer_all_quantize_en;
+
+  quantize_control #(
+    .VLEN               (VLEN                 ),
+    .DataBufDepth     ( 5)  
+  ) i_quantize_control (
+    .clk_i                ( clk_i )  ,
+    .rst_ni               ( rst_ni )  ,
+    .flush_i              ( flush_i )    ,
+    .operand_a_i          ( operand_i[MulFPUA] )        ,
+    .operand_a_valid_i    ( operand_valid_i[MulFPUA] ),
+    .operand_c_i          ( operand_i[MulFPUC] )        ,
+    .operand_c_valid_i    ( operand_valid_i[MulFPUC] ),
+    .conv_a_i             ( conv_vifmm_a ),
+    .conv_b_i             ( conv_vifmm_b ),
+    .conv_c_i             ( conv_vifmm_c ),
+    .conv_dead_i          ( cmd_dead ),
+    .elem_sum_a_i         ( elem_sum_a ), 
+    .elem_sum_c_i         ( elem_sum_c ), 
+    .transfer_type_o      ( transfer_type ),
+    .transfer_data_o      ( transfer_data ),
+    .transfer_full_valid_o( transfer_full_valid ),
+    .transfer_all_quantize_en_o( transfer_all_quantize_en ),
+    .conv_vifmm_o         ( conv_vifmm_Pre )
+  );
+
+  PreU i_PreU (
+    .clk_i                ( clk_i )  ,
+    .rst_ni               ( rst_ni )  ,
+    .operand_valid_i      ( mfpu_operand_valid_o ),
+    .operand_a_i          ( mfpu_operand_a ),
+    .operand_c_i          ( mfpu_operand_c ),
+    .transfer_type_i      ( transfer_type       ),
+    .transfer_data_i      ( transfer_data       ),
+    .conv_i               ( conv_vifmm_Pre )  ,
+    .transfer_all_quantize_en_i ( transfer_all_quantize_en ),
+    .operand_a_o          ( mfpu_operand_o[0]   ),
+    .operand_c_o          ( mfpu_operand_o[2]   )
+  );
+
   operand_queue_mfpu_a #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
     .DataBufDepth       (5                    ),
     .FPUSupport         (FPUSupport           ),
+    .AccessCmdPop       (1'b1 ),
     .NrLanes            (NrLanes              ),
     .VLEN               (VLEN                 ),
     .SupportIntExt2     (1'b1                 ),
@@ -147,16 +202,18 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .lane_id_i                (lane_id_i                         ),
     .operand_queue_cmd_i      (operand_queue_cmd_i[MulFPUA]      ),
     .operand_queue_cmd_valid_i(operand_queue_cmd_valid_i[MulFPUA]),
-    .cmd_pop_o                (/* Unused */                      ),
+    .cmd_pop_o                (cmd_dead                         ),  // gukai@20250704
     .operand_i                (operand_i[MulFPUA]                ),
     .operand_valid_i          (operand_valid_i[MulFPUA]          ),
     .operand_issued_i         (operand_issued_i[MulFPUA]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUA]    ),
-    .operand_o                (mfpu_operand_o[0]                 ),
+    .operand_o                (mfpu_operand_a                 ),  // gukai@20250625: mfpu_operand_a is used to hold the operand_a for PreU, which is repleased by mfpu_operand_o[0]
     .operand_target_fu_o      (/* Unused */                      ),
     .operand_valid_o          (mfpu_operand_valid_o[0]           ),
     .operand_ready_i          (mfpu_operand_ready_i[0]           ),
-    .vifmm_cov_type_o           (vifmm_cov_type_o                  )
+    .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
+    .conv_vifmm_o             (conv_vifmm_a                  ),
+    .elem_sum_a_o           (elem_sum_a                     )
   );
 
   operand_queue_mfpu_b #(
@@ -184,10 +241,12 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_o                (mfpu_operand_o[1]                 ),
     .operand_target_fu_o      (/* Unused */                      ),
     .operand_valid_o          (mfpu_operand_valid_o[1]           ),
-    .operand_ready_i          (mfpu_operand_ready_i[1]           )
+    .operand_ready_i          (mfpu_operand_ready_i[1]           ),
+    .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
+    .conv_vifmm_o             (conv_vifmm_b                  )
   );
 
-  operand_queue #(
+  operand_queue_mfpu_c #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
     .DataBufDepth       (5                    ),
     .FPUSupport         (FPUSupport           ),
@@ -209,10 +268,13 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_valid_i          (operand_valid_i[MulFPUC]          ),
     .operand_issued_i         (operand_issued_i[MulFPUC]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUC]    ),
-    .operand_o                (mfpu_operand_o[2]                 ),
+    .operand_o                (mfpu_operand_c                 ),  //gukai@20250625: mfpu_operand_c is used to hold the operand_c for PreU, which is repleased by mfpu_operand_o[2]
     .operand_target_fu_o      (/* Unused */                      ),
     .operand_valid_o          (mfpu_operand_valid_o[2]           ),
-    .operand_ready_i          (mfpu_operand_ready_i[2]           )
+    .operand_ready_i          (mfpu_operand_ready_i[2]           ),
+    .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
+    .conv_vifmm_o             (conv_vifmm_c                  ),
+    .elem_sum_c_o           (elem_sum_c                     )
   );
 
   ///////////////////////

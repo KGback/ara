@@ -459,7 +459,7 @@ void matmul_vifmm(float* xout, float* x, QuantizedTensor *w, int n, int d) {
         int j;
         for (j = 0; j <= n - GS; j += GS) {
             fval = vifbw_e32_m4(&x[j], &w->q[in + j], GS);
-            printf("%f ", fval);
+            // printf("%f ", fval);
             val +=  fval * w->s[(in + j) / GS];
             fval = 0;
         }
@@ -1052,7 +1052,7 @@ int main(int argc, char *argv[]) {
     // default parameters
     float temperature = 1.0f;   // 0.0 = greedy deterministic. 1.0 = original. don't set higher
     float topp = 0.9f;          // top-p in nucleus sampling. 1.0 = off. 0.9 works well, but slower
-    int steps = 3;            // number of steps to run for
+    int steps = 256;            // number of steps to run for
     char *prompt = NULL;        // prompt string
     unsigned long long rng_seed = 0; // seed rng with time by default
     char *mode = "generate";    // generate|chat

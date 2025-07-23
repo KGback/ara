@@ -50,7 +50,7 @@ def emit(name, array, alignment='8'):
 #   sys.exit()
 d = 188
 n = 5 
-VEC_SIZE = 500
+VEC_SIZE = 288*5000
 P = 1 
 
 dtypew = np.int8

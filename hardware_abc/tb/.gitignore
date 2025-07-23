@@ -1,3 +1,0 @@
-*.o
-# Ignore modelsim DPI header
-dpi/elfdpi.h

@@ -39,11 +39,15 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
     output elen_t                             operand_o,
     output target_fu_e                        operand_target_fu_o,
     output logic                              operand_valid_o,
-    input  logic               [NrSlaves-1:0] operand_ready_i
+    input  logic               [NrSlaves-1:0] operand_ready_i,
+    input  logic                              transfer_all_quantize_en_i, // gukai@20250626
+    output opqueue_conversion_e               conv_vifmm_o // gukai@20250523
   );
 
   // gukai@20250310
   logic [2:0]   bytenum_per_op_d, bytenum_per_op_q;
+
+  assign conv_vifmm_o = cmd.conv ;
 
   //////////////////////
   //  Command Buffer  //
@@ -535,11 +539,17 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
           elem_count_d = elem_count_q + 1;
         OpQueueConversionF32I8: begin   // gukai@20250218, modify the number of operand B of MFPU
           // From 8/4 operands to 2 operands
+          if (transfer_all_quantize_en_i) begin
+            elem_count_d = elem_count_q + 8; // 8 elements in a 64-bit packet
+            bytenum_per_op_d =  bytenum_per_op_q + 4;
+          end else begin
             elem_count_d = elem_count_q + 2;
+            bytenum_per_op_d =  bytenum_per_op_q + 1;
+          end
           // end else begin
 
           // end
-          bytenum_per_op_d =  bytenum_per_op_q + 1;
+        
         end
           
         default: elem_count_d = elem_count_q + (1 << (unsigned'(EW64) - unsigned'(cmd.eew)));

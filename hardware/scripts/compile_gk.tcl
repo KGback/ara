@@ -4,7 +4,7 @@ set ROOT "/home/kevin/projs/github/ara"
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -30,7 +30,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -48,7 +48,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -65,7 +65,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -87,7 +87,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -104,7 +104,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -123,7 +123,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -141,7 +141,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -206,7 +206,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -253,7 +253,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -271,7 +271,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -303,7 +303,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -328,7 +328,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -401,7 +401,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -423,7 +423,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -480,7 +480,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -504,7 +504,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -523,7 +523,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -545,7 +545,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -567,7 +567,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -591,7 +591,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -616,7 +616,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -758,7 +758,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -781,7 +781,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \
@@ -810,7 +810,13 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/src/lane/lane_sequencer.sv" \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_a.sv"  \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_b.sv"   \
-    "$ROOT/hardware/ifmix_src/outlier_judge.sv" 	\
+    "$ROOT/hardware/ifmix_src/operand_queue_mfpu_c.sv"   \
+    "$ROOT/hardware/ifmix_src/quantize_control.sv" 	\
+    "$ROOT/hardware/ifmix_src/PostU.sv" 	\
+    "$ROOT/hardware/ifmix_src/PreU.sv" 	\
+    "$ROOT/hardware/ifmix_src/fp32_int8_quantize.sv" 	\
+    "$ROOT/hardware/ifmix_src/fp32_int32_compensate.sv" 	\
+    "$ROOT/hardware/ifmix_src/int_fp32_convert.sv" 	\
     "$ROOT/hardware/src/lane/operand_queue.sv" \
     "$ROOT/hardware/src/lane/operand_requester.sv" \
     "$ROOT/hardware/src/lane/simd_alu.sv" \
@@ -841,7 +847,7 @@ if {[catch {vlog -incr -sv \
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \
     +define+ARIANE_ACCELERATOR_PORT=1 \
-    +define+NR_LANES=4 \
+    +define+NR_LANES=2 \
     +define+TARGET_ARA_TEST \
     +define+TARGET_CV64A6_IMAFDCV_SV39 \
     +define+TARGET_CVA6_TEST \

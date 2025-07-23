@@ -35,8 +35,9 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     output logic       ready_o,
     input  logic       ready_i,
     output logic       valid_o,
-    input  logic [1:0]        transfer_type, // gukai@20250609
-    input  logic [15:0]       transfer_data  // gukai@20250524
+    input  logic       transfer_all_quantize_en_i, // gukai@20250626
+    input  logic [3:0] [1:0] transfer_type_i, // gukai@20250609
+    input  logic [3:0] [15:0]       transfer_data_i  // gukai@20250524
   );
 
 `include "common_cells/registers.svh"
@@ -56,7 +57,6 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   ara_op_e      op;
 
   logic [1:0][64-1:0] result_tmp;  // gukai@20250524
-  logic [1:0][7:0]    fp32_exponent;  // gukai@20250610
 
   ///////////////////////
   //  Pipeline stages  //
@@ -161,19 +161,20 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       assign mul_res.w128[l] =
       $signed({opa.w64[l][63] & signed_a, opa.w64[l]}) * $signed({opb.w64[l][63] & signed_b, opb.w64[l]});
       if (FixPtSupport == FixedPointEnable)
-        assign vxsat.w64[l] = (op == VSMUL) ? result_o[(l+1)*64-1] ^ mul_res.w128[l][127] : '0;
+        assign vxsat.w64[l] = (op == VSMUL) ? result_tmp[0][(l+1)*64-1] ^ mul_res.w128[l][127] : '0;
       else
         assign vxsat.w64[l] = '0;
     end : gen_mul
 
     always_comb begin : p_mul
       // Default assignment
-      result_o = '0;
+      result_tmp[0] = '0;
+      result_tmp[1] = '0;
 
       unique case (op)
         // Single-Width integer multiply instructions
         VIFMM,   // gukai@20250303
-        VMUL: for (int l = 0; l < 1; l++) result_o[64*l +: 64] = mul_res.w128[l][63:0];
+        VMUL: for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = mul_res.w128[l][63:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
             2'b00: for (int b=0; b<1; b++) r[b] = mul_res.w128[b][62];
@@ -182,21 +183,21 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
             2'b10: r ='0;
             2'b11: for (int b=0; b<1; b++) r[b] = !mul_res.w128[b][63] & (mul_res.w128[b][62:0] != '0);
           endcase
-          for (int l = 0; l < 1; l++) result_o[64*l +: 64] = (op == VSMUL) ? (mul_res.w128[l] >> 63) + r[l] : mul_res.w128[l][63:0];
+          for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = (op == VSMUL) ? (mul_res.w128[l] >> 63) + r[l] : mul_res.w128[l][63:0];
         end
         VMULH,
         VMULHU,
-        VMULHSU: for (int l = 0; l < 1; l++) result_o[64*l +: 64] = mul_res.w128[l][127:64];
+        VMULHSU: for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = mul_res.w128[l][127:64];
         // Single-Width integer multiply-add instructions
         VMACC,
         VMADD: begin
-          for (int l = 0; l < 1; l++) result_o[64*l +: 64] = mul_res.w128[l][63:0] + opc.w64[l];
+          for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = mul_res.w128[l][63:0] + opc.w64[l];
         end
         VNMSAC,
         VNMSUB: begin
-          for (int l = 0; l < 1; l++) result_o[64*l +: 64] = -mul_res.w128[l][63:0] + opc.w64[l];
+          for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = -mul_res.w128[l][63:0] + opc.w64[l];
         end
-        default: result_o = '0;
+        default: result_tmp[0] = '0;
       endcase
     end
   end : gen_p_mul_ew64 else if (ElementWidth == EW32) begin: gen_p_mul_ew32
@@ -204,7 +205,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       assign mul_res.w64[l] =
       $signed({opa.w32[l][31] & signed_a, opa.w32[l]}) * $signed({opb.w32[l][31] & signed_b, opb.w32[l]});
       if (FixPtSupport == FixedPointEnable)
-        assign vxsat.w32[l] = (op == VSMUL) ? result_o[(l+1)*32-1] ^ mul_res.w64[l][63] : '0;
+        assign vxsat.w32[l] = (op == VSMUL) ? result_tmp[0][(l+1)*32-1] ^ mul_res.w64[l][63] : '0;
       else
         assign vxsat.w32[l] = '0;
     end: gen_mul
@@ -215,10 +216,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
         VIFMM:   // gukai@20250303
           for (int l = 0; l < 2; l++) begin
             result_tmp[l][63:0]     = mul_res.w64[l] + {{32{opc.w32[l][31]}}, opc.w32[l]} ;
-            fp32_exponent[l][7:0]   = transfer_type[l] ? (transfer_data[8*l +: 8] - 'd6) : (transfer_data[8*l +: 8] - 'd30) ;
-            result_o[32*l +: 32]    = int_to_fp32 ( result_tmp[l][63:0], fp32_exponent[l][7:0] ) ;
           end
-        VMUL: for (int l = 0; l < 2; l++) result_o[32*l +: 32] = mul_res.w64[l][31:0];
+        VMUL: for (int l = 0; l < 2; l++) result_tmp[0][32*l +: 32] = mul_res.w64[l][31:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
             2'b00: for (int b=0; b<2; b++) r[b] = mul_res.w64[b][30];
@@ -227,19 +226,19 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
             2'b10: r ='0;
             2'b11: for (int b=0; b<2; b++) r[b] = !mul_res.w64[b][31] & (mul_res.w64[b][30:0] != '0);
           endcase
-          for (int l = 0; l < 2; l++) result_o[32*l +: 32] = (op == VSMUL) ? (mul_res.w64[l] >> 31) + r[l] : mul_res.w64[l][31:0];
+          for (int l = 0; l < 2; l++) result_tmp[0][32*l +: 32] = (op == VSMUL) ? (mul_res.w64[l] >> 31) + r[l] : mul_res.w64[l][31:0];
         end
         VMULH,
         VMULHU,
-        VMULHSU: for (int l = 0; l < 2; l++) result_o[32*l +: 32] = mul_res.w64[l][63:32];
+        VMULHSU: for (int l = 0; l < 2; l++) result_tmp[0][32*l +: 32] = mul_res.w64[l][63:32];
         // Single-Width integer multiply-add instructions
         VMACC,
-        VMADD: for (int l = 0; l < 2; l++) result_o[32*l +: 32] = mul_res.w64[l][31:0] + opc.w32[l];
+        VMADD: for (int l = 0; l < 2; l++) result_tmp[0][32*l +: 32] = mul_res.w64[l][31:0] + opc.w32[l];
         VNMSAC,
         VNMSUB: for (int l = 0; l < 2; l++) begin
-            result_o[32*l +: 32] = -mul_res.w64[l][31:0] + opc.w32[l];
+            result_tmp[0][32*l +: 32] = -mul_res.w64[l][31:0] + opc.w32[l];
           end
-        default: result_o = '0;
+        default: result_tmp[0] = '0;
       endcase
     end
   end : gen_p_mul_ew32 else if (ElementWidth == EW16) begin: gen_p_mul_ew16
@@ -247,7 +246,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       assign mul_res.w32[l] =
       $signed({opa.w16[l][15] & signed_a, opa.w16[l]}) * $signed({opb.w16[l] [15] & signed_b, opb.w16[l]});
       if (FixPtSupport == FixedPointEnable)
-        assign vxsat.w16[l] = (op == VSMUL) ? result_o[(l+1)*16-1] ^ mul_res.w32[l][31] : '0;
+        assign vxsat.w16[l] = (op == VSMUL) ? result_tmp[0][(l+1)*16-1] ^ mul_res.w32[l][31] : '0;
       else
         assign vxsat.w16[l] = '0;
     end : gen_mul
@@ -256,7 +255,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       unique case (op)
         // Single-Width integer multiply instructions
         VIFMM,   // gukai@20250303
-        VMUL: for (int l = 0; l < 4; l++) result_o[16*l +: 16] = mul_res.w32[l][15:0];
+        VMUL: for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w32[l][15:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
             2'b00: for (int b=0; b<4; b++) r[b] = mul_res.w32[b][14];
@@ -265,19 +264,19 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
             2'b10: r ='0;
             2'b11: for (int b=0; b<4; b++) r[b] = !mul_res.w32[b][15] & (mul_res.w32[b][14:0] != '0);
           endcase
-          for (int l = 0; l < 4; l++) result_o[16*l +: 16] = (op == VSMUL) ? (mul_res.w32[l] >> 16) + r[l] : mul_res.w32[l][15:0];
+          for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = (op == VSMUL) ? (mul_res.w32[l] >> 16) + r[l] : mul_res.w32[l][15:0];
         end
         VMULH,
         VMULHU,
-        VMULHSU: for (int l = 0; l < 4; l++) result_o[16*l +: 16] = mul_res.w32[l][31:16];
+        VMULHSU: for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w32[l][31:16];
         // Single-Width integer multiply-add instructions
         VMACC,
-        VMADD: for (int l = 0; l < 4; l++) result_o[16*l +: 16] = mul_res.w32[l][15:0] + opc.w16[l];
+        VMADD: for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w32[l][15:0] + opc.w16[l];
         VNMSAC,
         VNMSUB: for (int l = 0; l < 4; l++) begin
-            result_o[16*l +: 16] = -mul_res.w32[l][15:0] + opc.w16[l];
+            result_tmp[0][16*l +: 16] = -mul_res.w32[l][15:0] + opc.w16[l];
           end
-        default: result_o = '0;
+        default: result_tmp[0] = '0;
       endcase
     end
   end : gen_p_mul_ew16 else if (ElementWidth == EW8) begin: gen_p_mul_ew8
@@ -285,7 +284,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       assign mul_res.w16[l] =
       $signed({opa.w8[l][7] & signed_a, opa.w8[l]}) * $signed({opb.w8[l][7] & signed_b, opb.w8[l]});
       if (FixPtSupport == FixedPointEnable)
-        assign vxsat.w8[l] = (op == VSMUL) ? result_o[(l+1)*8-1] ^ mul_res.w16[l][15] : '0;
+        assign vxsat.w8[l] = (op == VSMUL) ? result_tmp[0][(l+1)*8-1] ^ mul_res.w16[l][15] : '0;
       else
         assign vxsat.w8[l] = '0;
     end : gen_mul
@@ -293,8 +292,12 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     always_comb begin : p_mul
       unique case (op)
         // Single-Width integer multiply instructions
-        VIFMM,   // gukai@20250303
-        VMUL: for (int l = 0; l < 8; l++) result_o[8*l +: 8] = mul_res.w16[l][7:0];
+        VIFMM:   // gukai@20250303
+          if (transfer_all_quantize_en_i) begin
+            for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w16[l][15:0] + opc.w8[l];
+            for (int l = 4; l < 8; l++) result_tmp[1][16*(l-4) +: 16] = mul_res.w16[l][15:0] + opc.w8[l];
+          end
+        VMUL: for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = mul_res.w16[l][7:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
             2'b00: for (int b=0; b<8; b++) r[b] = mul_res.w16[b][6];
@@ -303,21 +306,33 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
             2'b10: r ='0;
             2'b11: for (int b=0; b<8; b++) r[b] = !mul_res.w16[b][7] & (mul_res.w16[b][6:0] != '0);
           endcase
-          for (int l = 0; l < 8; l++) result_o[8*l +: 8] = (op == VSMUL) ? (mul_res.w16[l] >> 7) + r[l] : mul_res.w16[l][7:0];
+          for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = (op == VSMUL) ? (mul_res.w16[l] >> 7) + r[l] : mul_res.w16[l][7:0];
         end
         VMULH,
         VMULHU,
-        VMULHSU: for (int l = 0; l < 8; l++) result_o[8*l +: 8] = mul_res.w16[l][15:8];
+        VMULHSU: for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = mul_res.w16[l][15:8];
         // Single-Width integer multiply-add instructions
         VMACC,
-        VMADD: for (int l = 0; l < 8; l++) result_o[8*l +: 8] = mul_res.w16[l][7:0] + opc.w8[l];
+        VMADD: for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = mul_res.w16[l][7:0] + opc.w8[l];
         VNMSAC,
-        VNMSUB: for (int l = 0; l < 8; l++) result_o[8*l +: 8] = -mul_res.w16[l][7:0] + opc.w8[l];
-        default: result_o = '0;
+        VNMSUB: for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = -mul_res.w16[l][7:0] + opc.w8[l];
+        default: result_tmp[0] = '0;
       endcase
     end
   end : gen_p_mul_ew8 else begin: gen_p_mul_error
     $error("[simd_vmul] Invalid ElementWidth.");
   end : gen_p_mul_error
 
+// gukai@20260526
+PostU i_PostU (
+  .clk_i                      (clk_i              ),
+  .rst_ni                     (rst_ni             ),
+  .valid_i                    (valid_o            ),
+  .result_i                   (result_tmp         ),  
+  .transfer_type_i            (transfer_type_i    ),          
+  .transfer_data_i            (transfer_data_i    ),        
+  .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
+  .op_i                       (op     ),  
+  .result_o                   (result_o     )
+);
 endmodule : simd_mul
