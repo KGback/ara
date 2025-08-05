@@ -31,11 +31,11 @@ int64_t get_cycle_count() {
 #define HW_CNT_READY hw_cnt_en_reg = 1;
 #define HW_CNT_NOT_READY hw_cnt_en_reg = 0;
 // Start and stop the counter
-inline void start_timer() { timer = -get_cycle_count(); }
-inline void stop_timer() { timer += get_cycle_count(); }
+void start_timer() { timer = -get_cycle_count(); }
+void stop_timer() { timer += get_cycle_count(); }
 
 // Get the value of the timer
-inline int64_t get_timer() { return timer; }
+int64_t get_timer() { return timer; }
 #else
 #define HW_CNT_READY ;
 #define HW_CNT_NOT_READY ;

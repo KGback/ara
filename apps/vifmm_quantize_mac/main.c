@@ -33,7 +33,7 @@
 #define VEC_SIZE_3     100
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
-#define GS 288
+#define GS 1
 
 extern int8_t w[]         __attribute__((aligned(1 * NR_LANES), section(".data")));
 extern float x[]          __attribute__((aligned(4 * NR_LANES), section(".data")));
@@ -54,10 +54,11 @@ void compute( int8_t* w,  float* x_f,float* xinit, float* xp, int size) {
 
     asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
     asm volatile("vle32.v v0, (%0);" ::"r"(xinit));
+    asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
     asm volatile("vsetvli zero, %0, e8, m2, ta, ma" ::"r"(block_size));    
     asm volatile("vle8.v v24, (%0);" ::"r"(w));
     asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
-    asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
+    // asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
     asm volatile("vifbw.vv v0, v16, v24");  // llvm
     // asm volatile("vifbw v0, v24, v16");   // gcc
 
@@ -139,10 +140,11 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
 
   if (size < block_size)
   {
+      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
+      asm volatile("vle32.v v16, (%0);" ::"r"(x_));
       asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(size));    
       asm volatile("vle8.v v24, (%0);" ::"r"(w_));
       asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
-      asm volatile("vle32.v v16, (%0);" ::"r"(x_));
     #ifndef LLVM
       asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
     #else
@@ -155,18 +157,19 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
   
       for (unsigned long int m = 0; m < size; m += block_size) {
         const unsigned long int p_ = MIN(size - m, block_size);
-        asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
-        asm volatile("vle8.v v24, (%0);" ::"r"(w_));
         asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
         asm volatile("vle32.v v16, (%0);" ::"r"(x_));
+        asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
+        asm volatile("vle8.v v24, (%0);" ::"r"(w_));
+        w_ += block_size;
+        x_ += block_size;
+        asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
       #ifndef LLVM
         asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
       #else
       //   asm volatile(".word 0xbb0c2057");    // llvm vifbw.vv v0, v16, v24
         asm volatile("vifbw.vv v0, v16, v24");
       #endif
-        w_ += block_size;
-        x_ += block_size;
       }
   }
   asm volatile("vfredsum.vs v8, v0, v8");  // vredsum.vs vd, vs2,vs1; vd[0]=sum(vs1[0], vs2[*])

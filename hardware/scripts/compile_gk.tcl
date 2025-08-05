@@ -1,5 +1,5 @@
 # This script was generated automatically by bender.
-set ROOT "/home/kevin/projs/github/ara"
+set ROOT "/home/kevin/projs/ara"
 
 if {[catch {vlog -incr -sv \
     -suppress vlog-2583 -suppress vlog-13314 -suppress vlog-13233 -work work \

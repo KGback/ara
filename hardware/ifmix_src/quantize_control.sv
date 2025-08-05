@@ -28,14 +28,14 @@ module quantize_control import ara_pkg::*; import rvv_pkg::*;import ifmix_pkg::*
     output opqueue_conversion_e               conv_vifmm_o
 );
 
-elen_t          operand_c_fifo;
+elen_t          operand_a_fifo;
 fp32_t [1:0]    operand_a_comp,operand_c_comp;
 
 logic   [TagDepth-1 :0]            transfer_type_d,transfer_type_q;
 logic   [TagDepth-1 :0] [7:0]      transfer_data_d,transfer_data_q;
 logic  [$clog2(TagDepth)-1:0]    transfer_type_pointer_d,transfer_type_pointer_q;
 logic                              conv_quantize_en;
-logic                              opc_push,opc_pop;
+logic                              opa_push,opa_pop;
 vlen_t                             elem_count_a_d, elem_count_a_q;
 vlen_t                             elem_count_c_d, elem_count_c_q;
 
@@ -50,11 +50,11 @@ assign conv_vifmm_o     = conv_quantize_en ? OpQueueConversionF32I8 : OpQueueCon
     .rst_ni    (rst_ni         ),
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
-    .data_i    (operand_c_i      ),
-    .push_i    (opc_push ),
+    .data_i    (operand_a_i      ),
+    .push_i    (opa_push ),
     .full_o    (/* Unused */   ),
-    .data_o    (operand_c_fifo   ),
-    .pop_i     (opc_pop         ),
+    .data_o    (operand_a_fifo   ),
+    .pop_i     (opa_pop         ),
     .empty_o   (/* Unused */   ),
     .usage_o   (/* Unused */   )
   );
@@ -65,54 +65,54 @@ always_comb begin: obuf_control
     if (conv_dead_i) begin
         elem_count_a_d = '0;
         elem_count_c_d = '0;
-        opc_pop        = 1'b0; // Do not pop if the command is dead
-        opc_push       = 1'b0; // Do not push if the command is dead
+        opa_pop        = 1'b0; // Do not pop if the command is dead
+        opa_push       = 1'b0; // Do not push if the command is dead
     end else begin
-        if (operand_a_valid_i) begin
+        if (operand_c_valid_i) begin
           // Finished execution
-          if (elem_count_a_q >= elem_sum_a_i) begin 
-            elem_count_a_d     = elem_count_a_q;
-            opc_pop            = 1'b0; // Do not pop if the command is dead
+          if (elem_count_c_q >= elem_sum_c_i) begin 
+            elem_count_c_d     = elem_count_c_q;
+            opa_pop            = 1'b0; // Do not pop if the command is dead
           end else begin
             // If the command is not dead, we can push the operand
                 unique case (conv_vifmm_o)
                   OpQueueConversionF32I8: begin
-                      elem_count_a_d            = elem_count_a_q + 2;
-                      opc_pop                   = 1'b1; // Pop the operand if opa is valid
+                      elem_count_c_d            = elem_count_c_q + 2;
+                      opa_pop                   = 1'b1; // Pop the operand if opa is valid
                       transfer_type_pointer_d   = transfer_type_pointer_q + 2'b10;
                   end
                   default: begin
-                        opc_pop            = 1'b0;
-                        elem_count_a_d = elem_count_a_q;
+                        opa_pop            = 1'b0;
+                        elem_count_c_d = elem_count_c_q;
                   end
                 endcase
           end
         end else begin
-            opc_pop            = 1'b0;
-            elem_count_a_d     = elem_count_a_q;
+            opa_pop            = 1'b0;
+            elem_count_c_d     = elem_count_c_q;
         end
 
-        if (operand_c_valid_i) begin
+        if (operand_a_valid_i) begin
             // Finished execution
-            if (elem_count_c_q >= elem_sum_c_i) begin
-              elem_count_c_d     = elem_count_c_q;
-              opc_push           = 1'b0; // Do not push if the command is dead
+            if (elem_count_a_q >= elem_sum_a_i) begin
+              elem_count_a_d     = elem_count_a_q;
+              opa_push           = 1'b0; // Do not push if the command is dead
             end else begin
                 // Count the used elements
                 unique case (conv_vifmm_o)
                   OpQueueConversionF32I8: begin
-                      elem_count_c_d = elem_count_c_q + 2;
-                      opc_push           = 1'b1; // Push the operand if the command is not dead
+                      elem_count_a_d = elem_count_a_q + 2;
+                      opa_push           = 1'b1; // Push the operand if the command is not dead
                   end
                   default: begin
-                    opc_push           = 1'b0;
-                    elem_count_c_d = elem_count_c_q;
+                    opa_push           = 1'b0;
+                    elem_count_a_d = elem_count_a_q;
                   end
                 endcase
             end
         end else begin
-            opc_push           = 1'b0;
-            elem_count_c_d     = elem_count_c_q;
+            opa_push           = 1'b0;
+            elem_count_a_d     = elem_count_a_q;
         end
     end
   end : obuf_control
@@ -132,10 +132,10 @@ always_comb begin
 
     case (conv_vifmm_o)
         OpQueueConversionF32I8: begin
-            operand_c_comp[1]    = operand_c_fifo[63:32];
-            operand_c_comp[0]    = operand_c_fifo[31:0];
-            operand_a_comp[1]    = operand_a_i[63:32];
-            operand_a_comp[0]    = operand_a_i[31:0];
+            operand_a_comp[1]    = operand_a_fifo[63:32];
+            operand_a_comp[0]    = operand_a_fifo[31:0];
+            operand_c_comp[1]    = operand_c_i[63:32];
+            operand_c_comp[0]    = operand_c_i[31:0];
         end
         default: begin
             operand_a_comp[1]                  = '0;
