@@ -13,9 +13,6 @@ module PreU import ara_pkg::*; (
 );
 
 logic [1:0] pointer_d, pointer_q;
-
-assign pointer_d = (&operand_valid_i) ? ( pointer_q + 1) : pointer_q;
-
 always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       pointer_q <= 0;
@@ -139,32 +136,35 @@ end
     );
 
     always_comb begin 
-        if (conv_i == OpQueueConversionF32I8) begin
-            if (transfer_all_quantize_en_i) begin
-                // All transfer types are 1, so we can use int8 quantization
-                operand_a_o = {opa_int8[3], opa_int8[2], opa_int8[1], opa_int8[0]};
-                operand_c_o = {opc_int8[3], opc_int8[2], opc_int8[1], opc_int8[0]};
-            end else begin
-                if (transfer_type_i[pointer_q][0]) begin   // quantize
-                    operand_a_o[31:0] = {{24{opa_int8[pointer_q][7]}},opa_int8[pointer_q][7:0]};
-                    operand_c_o[31:0] = {{24{opc_int8[pointer_q][7]}},opc_int8[pointer_q][7:0]};
-                end else begin                             // compensate
-                    operand_a_o[31:0] = opa_int32[0];
-                    operand_c_o[31:0] = opc_int32[0];
-                end
-                if (transfer_type_i[pointer_q][1]) begin   // quantize
-                    operand_a_o[63:32] = {{24{opa_int8[pointer_q][15]}},opa_int8[pointer_q][15:8]};
-                    operand_c_o[63:32] = {{24{opc_int8[pointer_q][15]}},opc_int8[pointer_q][15:8]};
-                end else begin                              // compensate
-                    operand_a_o[63:32] = opa_int32[1];
-                    operand_c_o[63:32] = opc_int32[1];
-                end
-            end 
-        end else begin
-            operand_a_o = operand_a_i[0];
-            operand_c_o = operand_c_i[0];
-        end
-        
+        operand_a_o = operand_a_i[0];
+        operand_c_o = operand_c_i[0];
+        pointer_d = pointer_q;
+        if (&operand_valid_i) begin
+            if (conv_i == OpQueueConversionF32I8) begin
+                pointer_d = pointer_q + 1;
+
+                if (transfer_all_quantize_en_i) begin
+                    // All transfer types are 1, so we can use int8 quantization
+                    operand_a_o = {opa_int8[3], opa_int8[2], opa_int8[1], opa_int8[0]};
+                    operand_c_o = {opc_int8[3], opc_int8[2], opc_int8[1], opc_int8[0]};
+                end else begin
+                    if (transfer_type_i[pointer_q][0]) begin   // quantize
+                        operand_a_o[31:0] = {{24{opa_int8[pointer_q][7]}},opa_int8[pointer_q][7:0]};
+                        operand_c_o[31:0] = {{24{opc_int8[pointer_q][7]}},opc_int8[pointer_q][7:0]};
+                    end else begin                             // compensate
+                        operand_a_o[31:0] = opa_int32[0];
+                        operand_c_o[31:0] = opc_int32[0];
+                    end
+                    if (transfer_type_i[pointer_q][1]) begin   // quantize
+                        operand_a_o[63:32] = {{24{opa_int8[pointer_q][15]}},opa_int8[pointer_q][15:8]};
+                        operand_c_o[63:32] = {{24{opc_int8[pointer_q][15]}},opc_int8[pointer_q][15:8]};
+                    end else begin                              // compensate
+                        operand_a_o[63:32] = opa_int32[1];
+                        operand_c_o[63:32] = opc_int32[1];
+                    end
+                end 
+            end
+        end 
     end
 
 endmodule

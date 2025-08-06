@@ -33,7 +33,7 @@
 #define VEC_SIZE_3     100
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
-#define GS 1
+#define GS 64
 
 extern int8_t w[]         __attribute__((aligned(1 * NR_LANES), section(".data")));
 extern float x[]          __attribute__((aligned(4 * NR_LANES), section(".data")));
