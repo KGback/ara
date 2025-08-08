@@ -1,5 +1,5 @@
-`define TRANS_QUANTIZE
-// `define TRANS_COMPENSATE
+// `define TRANS_QUANTIZE
+`define TRANS_COMPENSATE
 
 module quantize_control import ara_pkg::*; import rvv_pkg::*;import ifmix_pkg::*; #(
     parameter  int           unsigned VLEN                = 0,

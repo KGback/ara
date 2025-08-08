@@ -140,15 +140,14 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
 
   if (size < block_size)
   {
-      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
       asm volatile("vle32.v v16, (%0);" ::"r"(x_));
       asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(size));    
       asm volatile("vle8.v v24, (%0);" ::"r"(w_));
       asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
     #ifndef LLVM
-      asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
+      asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
     #else
-    //   asm volatile(".word 0xbb0c2057");    // llvm vifbw.vv v0, v16, v24
+    //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
       asm volatile("vifbw.vv v0, v16, v24");
     #endif
 
@@ -156,8 +155,7 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
   } else {
   
       for (unsigned long int m = 0; m < size; m += block_size) {
-        const unsigned long int p_ = MIN(size - m, block_size);
-        asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
+        const unsigned long int p_ = MIN(size - m, block_size); 
         asm volatile("vle32.v v16, (%0);" ::"r"(x_));
         asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
         asm volatile("vle8.v v24, (%0);" ::"r"(w_));
@@ -165,9 +163,9 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
         x_ += block_size;
         asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
       #ifndef LLVM
-        asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
+        asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
       #else
-      //   asm volatile(".word 0xbb0c2057");    // llvm vifbw.vv v0, v16, v24
+      //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
         asm volatile("vifbw.vv v0, v16, v24");
       #endif
       }

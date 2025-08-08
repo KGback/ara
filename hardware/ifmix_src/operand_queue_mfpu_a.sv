@@ -138,7 +138,8 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
   end
 
   fifo_v3 #(
-    .DEPTH     (DataBufDepth-3),
+    .DEPTH     (DataBufDepth/4 + 1        ), //gukai@20250808
+    // .DEPTH     (DataBufDepth-3),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer (
     .clk_i     (clk_i          ),
@@ -155,7 +156,8 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
   );
 
   fifo_v3 #(
-    .DEPTH     (1+1),
+    .DEPTH     (DataBufDepth/4 + 1        ), //gukai@20250808
+    // .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_1 (
     .clk_i     (clk_i          ),
@@ -172,7 +174,8 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
   );
 
   fifo_v3 #(
-    .DEPTH     (1+1),
+    .DEPTH     (DataBufDepth/4 + 1        ), //gukai@20250808
+    // .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_2 (
     .clk_i     (clk_i          ),
@@ -189,7 +192,8 @@ module operand_queue_mfpu_a import ara_pkg::*; import rvv_pkg::*; import cf_math
   );
 
   fifo_v3 #(
-    .DEPTH     (1+1),
+    .DEPTH     (DataBufDepth/4 + 1        ), //gukai@20250808
+    // .DEPTH     (1+1),
     .DATA_WIDTH(DataWidth   )
   ) i_input_buffer_3 (
     .clk_i     (clk_i          ),

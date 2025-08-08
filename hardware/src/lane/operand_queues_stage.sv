@@ -148,7 +148,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   quantize_control #(
     .VLEN               (VLEN                 ),
-    .DataBufDepth     ( 5)  
+    .DataBufDepth     ( 16)  
   ) i_quantize_control (
     .clk_i                ( clk_i )  ,
     .rst_ni               ( rst_ni )  ,
@@ -186,7 +186,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_a #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .AccessCmdPop       (1'b1 ),
     .NrLanes            (NrLanes              ),
@@ -218,7 +218,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_b #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .NrLanes            (NrLanes              ),
     .VLEN               (VLEN                 ),
@@ -248,7 +248,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_c #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .NrLanes            (NrLanes              ),
     .VLEN               (VLEN                 ),
