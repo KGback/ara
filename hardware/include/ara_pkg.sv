@@ -83,7 +83,7 @@ package ara_pkg;
   localparam int unsigned LatMultiplierEW64 = 1;
   localparam int unsigned LatMultiplierEW32 = 1;
   localparam int unsigned LatMultiplierEW16 = 1;
-  localparam int unsigned LatMultiplierEW8  = 0;
+  localparam int unsigned LatMultiplierEW8  = 0; //gukai@20250811 0 -> 1
 
   // FPU latencies.
   localparam int unsigned LatFCompEW64    = 'd5;
@@ -926,7 +926,7 @@ typedef struct packed {
   // There are seven operand queues, serving operands to the different functional units of each lane
   localparam int unsigned NrOperandQueues = 9;
   typedef enum logic [$clog2(NrOperandQueues)-1:0] {
-    AluA, AluB, MulFPUA, MulFPUB, MulFPUC, MaskB, MaskM, StA, SlideAddrGenA
+    AluA, AluB, MulFPUA, MulFPUB, MulFPUC, MaskB, MaskM, StA, SlideAddrGenA, VifmmRes
   } opqueue_e;
 
   // Each lane has eight VRF banks

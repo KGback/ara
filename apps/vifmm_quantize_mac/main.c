@@ -30,10 +30,10 @@
 #define VEC_SIZE_0     16
 #define VEC_SIZE_1     16
 #define VEC_SIZE_2     16
-#define VEC_SIZE_3     100
+#define VEC_SIZE_3     288
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
-#define GS 1
+#define GS 64
 
 extern int8_t w[]         __attribute__((aligned(1 * NR_LANES), section(".data")));
 extern float x[]          __attribute__((aligned(4 * NR_LANES), section(".data")));
@@ -140,15 +140,14 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
 
   if (size < block_size)
   {
-      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
       asm volatile("vle32.v v16, (%0);" ::"r"(x_));
       asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(size));    
       asm volatile("vle8.v v24, (%0);" ::"r"(w_));
       asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
     #ifndef LLVM
-      asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
+      asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
     #else
-    //   asm volatile(".word 0xbb0c2057");    // llvm vifbw.vv v0, v16, v24
+    //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
       asm volatile("vifbw.vv v0, v16, v24");
     #endif
 
@@ -156,8 +155,7 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
   } else {
   
       for (unsigned long int m = 0; m < size; m += block_size) {
-        const unsigned long int p_ = MIN(size - m, block_size);
-        asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
+        const unsigned long int p_ = MIN(size - m, block_size); 
         asm volatile("vle32.v v16, (%0);" ::"r"(x_));
         asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
         asm volatile("vle8.v v24, (%0);" ::"r"(w_));
@@ -165,9 +163,9 @@ float vifbw_e32_m4( float* x, int8_t* w, int size) {
         x_ += block_size;
         asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
       #ifndef LLVM
-        asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v24, v16
+        asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
       #else
-      //   asm volatile(".word 0xbb0c2057");    // llvm vifbw.vv v0, v16, v24
+      //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
         asm volatile("vifbw.vv v0, v16, v24");
       #endif
       }
@@ -645,19 +643,19 @@ int main() {
     }
     
 
-    // if (test2())
-    // {
-    //   printf("TEST2: PASS\n");
-    // } else {
-    //   printf("TEST2: FAILED\n");
-    // }
+    if (test2())
+    {
+      printf("TEST2: PASS\n");
+    } else {
+      printf("TEST2: FAILED\n");
+    }
 
-    // if (test3(x, w))
-    // {
-    //   printf("TEST3: PASS\n");
-    // } else {
-    //   printf("TEST3: FAILED\n");
-    // }
+    if (test3(x, w))
+    {
+      printf("TEST3: PASS\n");
+    } else {
+      printf("TEST3: FAILED\n");
+    }
 
     // if (test4(x, w))
     // {

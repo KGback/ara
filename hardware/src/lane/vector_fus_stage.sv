@@ -62,6 +62,7 @@ module vector_fus_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg
     output vid_t                              mfpu_result_id_o,
     output vaddr_t                            mfpu_result_addr_o,
     output elen_t                             mfpu_result_wdata_o,
+    output elen_t          [2:0]         mfpu_result_wdata_vifmm_o,     //gukai@20250816
     output strb_t                             mfpu_result_be_o,
     input  logic                              mfpu_result_gnt_i,
     // Interface with the Slide Unit
@@ -191,6 +192,7 @@ module vector_fus_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg
     .mfpu_result_id_o     (mfpu_result_id_o                ),
     .mfpu_result_addr_o   (mfpu_result_addr_o              ),
     .mfpu_result_wdata_o  (mfpu_result_wdata_o             ),
+    .mfpu_result_wdata_vifmm_o  (mfpu_result_wdata_vifmm_o), //gukai@20250816
     .mfpu_result_be_o     (mfpu_result_be_o                ),
     .mfpu_result_gnt_i    (mfpu_result_gnt_i               ),
     // Interface with the Slide Unit

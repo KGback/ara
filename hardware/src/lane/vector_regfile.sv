@@ -24,8 +24,12 @@ module vector_regfile import ara_pkg::*; #(
     input  logic     [NrBanks-1:0]         wen_i,
     input  elen_t    [NrBanks-1:0]         wdata_i,
     input  strb_t    [NrBanks-1:0]         be_i,
+    input  logic     [1:0]                 vifmm_en_i,
     // Operands
     output elen_t    [NrOperandQueues-1:0] operand_o,
+    input  elen_t          [2:0]           result_vifmm_i,     //gukai@20250816
+    output elen_t    [2:0]                 operand_a_vifmm_o,
+    output elen_t    [2:0]                 operand_c_vifmm_o,
     output logic     [NrOperandQueues-1:0] operand_valid_o
   );
 
@@ -44,15 +48,86 @@ module vector_regfile import ara_pkg::*; #(
   elen_t    [NrBanks-1:0] rdata;
   logic     [NrBanks-1:0] rdata_valid_q;
   opqueue_e [NrBanks-1:0] tgt_opqueue_q;
+  logic     [1:0]         vifmm_en_q; // gukai@20250808;
+
+  // gukai@20250803
+  logic     [NrBanks-1:0] xbar_rdata_valid_q;
+  opqueue_e [NrBanks-1:0] xbar_tgt_opqueue_q;
+  elen_t    [NrBanks-1:0]         vrf_wdata;
+  always_comb begin
+    xbar_rdata_valid_q = rdata_valid_q;
+    xbar_tgt_opqueue_q = tgt_opqueue_q;
+    operand_a_vifmm_o = '0;
+    operand_c_vifmm_o = '0;
+    vrf_wdata         = wdata_i;
+
+    // read data from vrf
+    if (vifmm_en_q[0] ) begin
+      if (&rdata_valid_q[3:0] && (tgt_opqueue_q[0] == MulFPUA) ) begin
+        xbar_rdata_valid_q[0]   = 1'b1;
+        xbar_rdata_valid_q[3:1] = 3'h0;
+        if (tgt_opqueue_q[0] == MulFPUA) begin
+          operand_a_vifmm_o[0]    = rdata[1];
+          operand_a_vifmm_o[1]    = rdata[2];
+          operand_a_vifmm_o[2]    = rdata[3];
+        end
+      end
+      if (&rdata_valid_q[7:4] && (tgt_opqueue_q[4] == MulFPUA)) begin
+        xbar_rdata_valid_q[4] = 1'b1;
+        xbar_rdata_valid_q[7:5] = 3'h0;
+        if (tgt_opqueue_q[4] == MulFPUA) begin
+          operand_a_vifmm_o[0]    = rdata[5];
+          operand_a_vifmm_o[1]    = rdata[6];
+          operand_a_vifmm_o[2]    = rdata[7];
+        end
+      end
+    end
+    if (vifmm_en_q[1] ) begin
+      if (&rdata_valid_q[3:0] && (tgt_opqueue_q[0] == MulFPUC) ) begin
+        xbar_rdata_valid_q[0]   = 1'b1;
+        xbar_rdata_valid_q[3:1] = 3'h0;
+        if (tgt_opqueue_q[0] == MulFPUC) begin
+          operand_c_vifmm_o[0]    = rdata[1];
+          operand_c_vifmm_o[1]    = rdata[2];
+          operand_c_vifmm_o[2]    = rdata[3];
+        end
+      end
+      if (&rdata_valid_q[7:4] && (tgt_opqueue_q[4] == MulFPUC)) begin
+        xbar_rdata_valid_q[4] = 1'b1;
+        xbar_rdata_valid_q[7:5] = 3'h0;
+        if (tgt_opqueue_q[4] == MulFPUC) begin
+          operand_c_vifmm_o[0]    = rdata[5];
+          operand_c_vifmm_o[1]    = rdata[6];
+          operand_c_vifmm_o[2]    = rdata[7];
+        end
+      end
+    end
+
+    // write data to vrf
+    if (&wen_i[3:0] && (tgt_opqueue_i[0] == VifmmRes)) begin
+      vrf_wdata[0] = wdata_i[0];
+      vrf_wdata[1] = result_vifmm_i[0];
+      vrf_wdata[2] = result_vifmm_i[1];
+      vrf_wdata[3] = result_vifmm_i[2];
+    end
+    if (&wen_i[7:4] && (tgt_opqueue_i[4] == VifmmRes)) begin
+      vrf_wdata[4] = wdata_i[4];
+      vrf_wdata[5] = result_vifmm_i[0];
+      vrf_wdata[6] = result_vifmm_i[1];
+      vrf_wdata[7] = result_vifmm_i[2];
+    end
+  end
 
   // Generate the rdata_valid and tgt_opqueue signals by delaying the request by one cycle
   always_ff @(posedge clk_i or negedge rst_ni) begin: p_rdata_valid
     if (!rst_ni) begin
       rdata_valid_q <= '0;
       tgt_opqueue_q <= '0;
+      vifmm_en_q    <= '0;
     end else begin
       rdata_valid_q <= req_i & ~wen_i;
       tgt_opqueue_q <= tgt_opqueue_i;
+      vifmm_en_q    <= vifmm_en_i;
     end
   end
 
@@ -89,11 +164,13 @@ module vector_regfile import ara_pkg::*; #(
       .req_i  (req_i[bank]                       ),
       .we_i   (wen_i[bank]                       ),
       .rdata_o(rdata[bank]                       ),
-      .wdata_i(wdata_i[bank]                     ),
+      .wdata_i(vrf_wdata[bank]                     ),
       .be_i   (be_i[bank]                        ),
       .addr_i (addr_i[bank][$clog2(NumWords)-1:0])
     );
   end : gen_banks
+
+  
 
   ///////////////////
   //  Multiplexer  //
@@ -110,7 +187,7 @@ module vector_regfile import ara_pkg::*; #(
     .flush_i(1'b0           ),
     .rr_i   ('0             ),
     .data_i (rdata          ),
-    .valid_i(rdata_valid_q  ),
+    .valid_i(xbar_rdata_valid_q  ),
     .ready_o(/* Unused */   ),
     .sel_i  (tgt_opqueue_q  ),
     .data_o (operand_o      ),

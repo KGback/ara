@@ -19,6 +19,8 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     // Interface with the Vector Register File
     input  elen_t              [NrOperandQueues-1:0] operand_i,
     input  logic               [NrOperandQueues-1:0] operand_valid_i,
+    input  elen_t    [2:0]                 operand_a_vifmm_i,
+    input  elen_t    [2:0]                 operand_c_vifmm_i,
     // Input with the Operand Requester
     input  logic               [NrOperandQueues-1:0] operand_issued_i,
     output logic               [NrOperandQueues-1:0] operand_queue_ready_o,
@@ -148,21 +150,24 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   quantize_control #(
     .VLEN               (VLEN                 ),
-    .DataBufDepth     ( 5)  
+    .DataBufDepth     ( 16)  
   ) i_quantize_control (
     .clk_i                ( clk_i )  ,
     .rst_ni               ( rst_ni )  ,
     .flush_i              ( flush_i )    ,
     .operand_a_i          ( operand_i[MulFPUA] )        ,
     .operand_a_valid_i    ( operand_valid_i[MulFPUA] ),
+    .operand_a_vifmm_i    ( operand_a_vifmm_i )  ,
     .operand_c_i          ( operand_i[MulFPUC] )        ,
     .operand_c_valid_i    ( operand_valid_i[MulFPUC] ),
+    .operand_c_vifmm_i    ( operand_c_vifmm_i )  ,
     .conv_a_i             ( conv_vifmm_a ),
     .conv_b_i             ( conv_vifmm_b ),
     .conv_c_i             ( conv_vifmm_c ),
     .conv_dead_i          ( cmd_dead ),
     .elem_sum_a_i         ( elem_sum_a ), 
     .elem_sum_c_i         ( elem_sum_c ), 
+    .operand_out_valid_i  ( mfpu_operand_valid_o ),
     .transfer_type_o      ( transfer_type ),
     .transfer_data_o      ( transfer_data ),
     .transfer_full_valid_o( transfer_full_valid ),
@@ -186,7 +191,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_a #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .AccessCmdPop       (1'b1 ),
     .NrLanes            (NrLanes              ),
@@ -204,6 +209,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_queue_cmd_valid_i(operand_queue_cmd_valid_i[MulFPUA]),
     .cmd_pop_o                (cmd_dead                         ),  // gukai@20250704
     .operand_i                (operand_i[MulFPUA]                ),
+    .operand_vifmm_i    ( operand_a_vifmm_i )  ,
     .operand_valid_i          (operand_valid_i[MulFPUA]          ),
     .operand_issued_i         (operand_issued_i[MulFPUA]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUA]    ),
@@ -218,7 +224,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_b #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .NrLanes            (NrLanes              ),
     .VLEN               (VLEN                 ),
@@ -248,7 +254,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
 
   operand_queue_mfpu_c #(
     .CmdBufDepth        (MfpuInsnQueueDepth   ),
-    .DataBufDepth       (5                    ),
+    .DataBufDepth       (16                    ),
     .FPUSupport         (FPUSupport           ),
     .NrLanes            (NrLanes              ),
     .VLEN               (VLEN                 ),
@@ -265,6 +271,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_queue_cmd_valid_i(operand_queue_cmd_valid_i[MulFPUC]),
     .cmd_pop_o                (/* Unused */                      ),
     .operand_i                (operand_i[MulFPUC]                ),
+    .operand_vifmm_i    ( operand_c_vifmm_i )  ,
     .operand_valid_i          (operand_valid_i[MulFPUC]          ),
     .operand_issued_i         (operand_issued_i[MulFPUC]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUC]    ),

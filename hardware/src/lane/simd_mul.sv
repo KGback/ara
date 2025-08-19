@@ -37,7 +37,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     output logic       valid_o,
     input  logic       transfer_all_quantize_en_i, // gukai@20250626
     input  logic [3:0] [1:0] transfer_type_i, // gukai@20250609
-    input  logic [3:0] [15:0]       transfer_data_i  // gukai@20250524
+    input  logic [3:0] [15:0]       transfer_data_i,  // gukai@20250524
+    output elen_t [2:0]       result_vifmm_o  // gukai@20250816
   );
 
 `include "common_cells/registers.svh"
@@ -294,8 +295,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
         // Single-Width integer multiply instructions
         VIFMM:   // gukai@20250303
           if (transfer_all_quantize_en_i) begin
-            for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w16[l][15:0] + opc.w8[l];
-            for (int l = 4; l < 8; l++) result_tmp[1][16*(l-4) +: 16] = mul_res.w16[l][15:0] + opc.w8[l];
+            for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w16[l][15:0] + {{8{opc.w8[l][7]}},opc.w8[l]};
+            for (int l = 4; l < 8; l++) result_tmp[1][16*(l-4) +: 16] = mul_res.w16[l][15:0] + {{8{opc.w8[l][7]}},opc.w8[l]};
           end
         VMUL: for (int l = 0; l < 8; l++) result_tmp[0][8*l +: 8] = mul_res.w16[l][7:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
@@ -333,6 +334,9 @@ PostU i_PostU (
   .transfer_data_i            (transfer_data_i    ),        
   .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
   .op_i                       (op     ),  
-  .result_o                   (result_o     )
+  .result_o                   (result_o     ),
+  .result1_o                  (result_vifmm_o[0]),
+  .result2_o                  (result_vifmm_o[1]),
+  .result3_o                  (result_vifmm_o[2])
 );
 endmodule : simd_mul
