@@ -812,11 +812,12 @@ if {[catch {vlog -incr -sv \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_b.sv"   \
     "$ROOT/hardware/ifmix_src/operand_queue_mfpu_c.sv"   \
     "$ROOT/hardware/ifmix_src/quantize_control.sv" 	\
-    "$ROOT/hardware/ifmix_src/PostU.sv" 	\
-    "$ROOT/hardware/ifmix_src/PreU.sv" 	\
     "$ROOT/hardware/ifmix_src/fp32_int8_quantize.sv" 	\
     "$ROOT/hardware/ifmix_src/fp32_int32_compensate.sv" 	\
     "$ROOT/hardware/ifmix_src/int_fp32_convert.sv" 	\
+    "$ROOT/hardware/ifmix_src/int8_fp32_convert.sv" 	\
+    "$ROOT/hardware/ifmix_src/PostU.sv" 	\
+    "$ROOT/hardware/ifmix_src/PreU.sv" 	\
     "$ROOT/hardware/src/lane/operand_queue.sv" \
     "$ROOT/hardware/src/lane/operand_requester.sv" \
     "$ROOT/hardware/src/lane/simd_alu.sv" \

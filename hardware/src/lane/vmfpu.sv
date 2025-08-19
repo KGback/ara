@@ -51,6 +51,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     output vid_t                         mfpu_result_id_o,
     output vaddr_t                       mfpu_result_addr_o,
     output elen_t                        mfpu_result_wdata_o,
+    output elen_t          [2:0]         mfpu_result_wdata_vifmm_o,
     output strb_t                        mfpu_result_be_o,
     input  logic                         mfpu_result_gnt_i,
     // Interface with the Slide Unit
@@ -122,39 +123,61 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
   // Do we have a vector instruction being processed?
   vfu_operation_t vinsn_processing_d, vinsn_processing_q;
   logic           vinsn_processing_d_valid, vinsn_processing_q_valid;
+  
   assign vinsn_processing_d       = vinsn_queue_d.vinsn[vinsn_queue_d.processing_pnt];
-  assign vinsn_processing_q       = vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt];
+
   assign vinsn_processing_d_valid = (vinsn_queue_d.processing_cnt != '0);
   assign vinsn_processing_q_valid = (vinsn_queue_q.processing_cnt != '0);
 
   // Do we have a vector instruction with results being committed?
   vfu_operation_t vinsn_commit;
   logic           vinsn_commit_valid;
-  assign vinsn_commit       = vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt];
+  // assign vinsn_commit       = vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt];  //gukai@20250817
   assign vinsn_commit_valid = (vinsn_queue_q.commit_cnt != '0);
 
+  // gukai@20250811
+  always_comb begin
+    vinsn_processing_q = vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt];
+    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && transfer_all_quantize_en_i) begin
+      vinsn_processing_q.vtype.vsew = EW8;
+    end
+    vinsn_issue_q     = vinsn_queue_q.vinsn[vinsn_queue_q.issue_pnt];
+    if (vinsn_queue_q.vinsn[vinsn_queue_q.issue_pnt].op == VIFMM && transfer_all_quantize_en_i) begin
+      vinsn_issue_q.vtype.vsew = EW8;
+    end
+    vinsn_commit       = vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt];
+    if (vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt].op == VIFMM && transfer_all_quantize_en_i) begin
+      vinsn_commit.vtype.vsew = EW8;
+    end
+  end
 
   // gukai@20250219
   logic [3:0] [1:0] transfer_type_ff1,transfer_type_ff2;
   logic [3:0] [15:0]       transfer_data_ff1,transfer_data_ff2;
+  elen_t [2:0]       result_vifmm;  // gukai@20250816
 
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       vinsn_queue_q             <= '0;
-      vinsn_issue_q             <= '0;
+      // vinsn_issue_q             <= '0;
       // gukai@20250219
       transfer_type_ff1  <= '0;
       transfer_type_ff2  <= '0;
       transfer_data_ff1  <= '0;
       transfer_data_ff2  <= '0;
+      for (int i = 0; i < 3; i++) begin
+        mfpu_result_wdata_vifmm_o[i] <= '0;
+      end
     end else begin
       vinsn_queue_q             <= vinsn_queue_d;
-      vinsn_issue_q             <= vinsn_issue_d;
+      // vinsn_issue_q             <= vinsn_issue_d;
       transfer_type_ff1         <= transfer_type_i;
       transfer_type_ff2         <= transfer_type_ff1;
       transfer_data_ff1         <= transfer_data_i;
       transfer_data_ff2         <= transfer_data_ff1;
-
+      for (int i = 0; i < 3; i++) begin
+        mfpu_result_wdata_vifmm_o[i] <= result_vifmm[i];
+      end
     end
   end
 
@@ -521,12 +544,13 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .result_o   (vmul_simd_result[EW8]         ),
     .mask_o     (vmul_simd_mask[EW8]           ),
     .valid_i    (vmul_simd_in_valid_q[EW8]     ),
-    .ready_o    (vmul_simd_in_ready[EW8]       ),
-    .ready_i    (vmul_simd_out_ready[EW8]      ),
+    .ready_o    (vmul_simd_in_ready[EW8]       ), // gukai@20250816: simd_mul is ready to receive the operands and generate the result
+    .ready_i    (vmul_simd_out_ready[EW8]      ), // gukai@20250816, tell simd_mul that vmfpu is ready to receive the result
     .valid_o    (vmul_simd_out_valid[EW8]      ),
     .transfer_all_quantize_en_i (transfer_all_quantize_en_i), // gukai@20250626
-    .transfer_type_i (transfer_type_ff2), // gukai@20250609
-    .transfer_data_i (transfer_data_ff2) // gukai@20250524
+    .transfer_type_i (transfer_type_ff1), // gukai@20250819
+    .transfer_data_i (transfer_data_ff1), // gukai@20250819
+    .result_vifmm_o  (result_vifmm)
   );
 
   // The outputs of the SIMD multipliers are read in order
@@ -1686,8 +1710,14 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
           // Store the result in the result queue
           result_queue_d[result_queue_write_pnt_q].id    = vinsn_processing_q.id;
-          result_queue_d[result_queue_write_pnt_q].addr  = vaddr(vinsn_processing_q.vd, NrLanes, VLEN) +
-            ((vinsn_processing_q.vl - to_process_cnt_q) >> (int'(EW64) - vinsn_processing_q.vtype.vsew));
+          
+          if (vinsn_processing_q.op == VIFMM) begin   // gukai@20250818
+            result_queue_d[result_queue_write_pnt_q].addr  = vaddr(vinsn_processing_q.vd, NrLanes, VLEN) +
+              ((vinsn_processing_q.vl - to_process_cnt_q) >> (int'(EW64) - vinsn_processing_q.vtype.vsew - 'd2)); // gukai@20250818: processed_cnt *4 banks
+          end else begin
+            result_queue_d[result_queue_write_pnt_q].addr  = vaddr(vinsn_processing_q.vd, NrLanes, VLEN) +
+              ((vinsn_processing_q.vl - to_process_cnt_q) >> (int'(EW64) - vinsn_processing_q.vtype.vsew));
+          end
           // FP narrowing instructions pack the result in two different cycles, and only some 8-bit slices are active
           if (narrowing(vinsn_processing_q.cvt_resize)) begin
             if (RVVB(FPUSupport) || RVVBA(FPUSupport)) begin

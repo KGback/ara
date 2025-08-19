@@ -37,6 +37,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
     output elen_t                [NrBanks-1:0]         vrf_wdata_o,
     output strb_t                [NrBanks-1:0]         vrf_be_o,
     output opqueue_e             [NrBanks-1:0]         vrf_tgt_opqueue_o,
+    output logic                 [1:0]                 vrf_vifmm_en_o,      
     // Interface with the operand queues
     input  logic                 [NrOperandQueues-1:0] operand_queue_ready_i,
     output logic                 [NrOperandQueues-1:0] operand_issued_o,
@@ -255,6 +256,8 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
     logic is_widening;
     // One-bit counters
     logic [NrVInsn-1:0] waw_hazard_counter;
+    // gukai@20250723
+    logic is_vifmm;
   } requester_metadata_t;
 
   for (genvar b = 0; b < NrBanks; b++) begin
@@ -262,6 +265,12 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
       assign lane_operand_req[b][r] = lane_operand_req_transposed[r][b];
     end
   end
+
+  // gukai@20250811
+  logic [NrOperandQueues-1:0] vrf_vifmm_en;
+  vid_t                       vifmm_request_id;
+  logic                       mfpu_write_vifmm_en;
+  assign vrf_vifmm_en_o[1:0] =  {vrf_vifmm_en[4],vrf_vifmm_en[2]};
 
   for (genvar requester_index = 0; requester_index < NrOperandQueues; requester_index++) begin : gen_operand_requester
     // State of this operand requester_index
@@ -345,8 +354,10 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
         vew         : operand_request_i[requester_index].eew,
         hazard      : operand_request_i[requester_index].hazard,
         is_widening : operand_request_i[requester_index].cvt_resize == CVT_WIDE,
+        is_vifmm    : operand_request_i[requester_index].conv == OpQueueConversionF32I8 ,  // gukai@20250723
         default: '0
       };
+      vrf_vifmm_en[requester_index] = '0; // gukai@20250811
       operand_queue_cmd_tmp = '{
         eew       : operand_request_i[requester_index].eew,
         elem_count: effective_vector_body_length,
@@ -402,27 +413,66 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
             automatic vlen_t num_elements;
 
             // Operand request
-            lane_operand_req_transposed[requester_index][bank] = !stall;
-            operand_payload[requester_index]   = '{
-              addr   : requester_metadata_q.addr >> $clog2(NrBanks),
-              opqueue: opqueue_e'(requester_index),
-              default: '0 // this is a read operation
-            };
+            // lane_operand_req_transposed[requester_index][bank] = !stall;
+            // operand_payload[requester_index]   = '{
+            //   addr   : requester_metadata_q.addr >> $clog2(NrBanks),
+            //   opqueue: opqueue_e'(requester_index),
+            //   default: '0 // this is a read operation
+            // };
 
             // Received a grant.
-            if (|operand_requester_gnt) begin : op_req_grant
-              // Bump the address pointer
-              requester_metadata_d.addr = requester_metadata_q.addr + 1'b1;
+            vrf_vifmm_en[requester_index] = requester_metadata_q.is_vifmm; // gukai@20250811
+            // gukai@20250803 require four banks in one cycle
+            if (requester_metadata_q.is_vifmm && (requester_index == 2 || requester_index == 4)) begin   
+              // Operand request
+              lane_operand_req_transposed[requester_index][bank] = !stall;
+              lane_operand_req_transposed[requester_index][bank+1] = !stall;
+              lane_operand_req_transposed[requester_index][bank+2] = !stall;
+              lane_operand_req_transposed[requester_index][bank+3] = !stall;
+              operand_payload[requester_index]   = '{
+                addr   : requester_metadata_q.addr >> $clog2(NrBanks),
+                opqueue: opqueue_e'(requester_index),
+                default: '0 // this is a read operation
+              };
 
-              // We read less than 64 bits worth of elements
-              num_elements = ( 1 << ( unsigned'(EW64) - unsigned'(requester_metadata_q.vew) ) );
-              if (requester_metadata_q.len < num_elements) begin
-                requester_metadata_d.len    = 0;
-              end
-              else begin
-                requester_metadata_d.len = requester_metadata_q.len - num_elements;
-              end
-            end : op_req_grant
+              if (|operand_requester_gnt) begin : op_req_grant_vifmm
+                // Bump the address pointer
+                requester_metadata_d.addr = requester_metadata_q.addr + 3'h4; // read each 4 banks
+
+                // We read less than 64 bits worth of elements
+                num_elements = ( 1 << ( unsigned'(EW64) - unsigned'(requester_metadata_q.vew) + 2 ) );  // +2 because we read 4 bank at a time
+                if (requester_metadata_q.len < num_elements) begin
+                  requester_metadata_d.len    = 0;
+                end
+                else begin
+                  requester_metadata_d.len = requester_metadata_q.len - num_elements;
+                end
+
+                vifmm_request_id = requester_metadata_q.id; // gukai@20250817: for result writing back in 4 banks
+              end : op_req_grant_vifmm
+            end else begin
+              // Operand request
+              lane_operand_req_transposed[requester_index][bank] = !stall;
+              operand_payload[requester_index]   = '{
+                addr   : requester_metadata_q.addr >> $clog2(NrBanks),
+                opqueue: opqueue_e'(requester_index),
+                default: '0 // this is a read operation
+              };
+
+              if (|operand_requester_gnt) begin : op_req_grant
+                // Bump the address pointer
+                requester_metadata_d.addr = requester_metadata_q.addr + 1'b1;
+
+                // We read less than 64 bits worth of elements
+                num_elements = ( 1 << ( unsigned'(EW64) - unsigned'(requester_metadata_q.vew) ) );
+                if (requester_metadata_q.len < num_elements) begin
+                  requester_metadata_d.len    = 0;
+                end
+                else begin
+                  requester_metadata_d.len = requester_metadata_q.len - num_elements;
+                end
+              end : op_req_grant
+	          end
 
             // Finished requesting all the elements
             if (requester_metadata_d.len == '0) begin
@@ -517,7 +567,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
       wen    : 1'b1,
       wdata  : mfpu_result_wdata_i,
       be     : mfpu_result_be_i,
-      opqueue: AluA,
+      opqueue: (vifmm_request_id == mfpu_result_id_i) ?  VifmmRes: AluA,   //gukai@20250817
       default: '0
     };
     operand_payload[NrOperandQueues + VFU_MaskUnit] = '{
@@ -550,6 +600,11 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
     alu_result_req_i;
     ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]][VFU_MFpu] =
     mfpu_result_req_i;
+    if (vifmm_request_id == mfpu_result_id_i) begin
+      ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+1][VFU_MFpu] = mfpu_result_req_i;
+      ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+2][VFU_MFpu] = mfpu_result_req_i;
+      ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+3][VFU_MFpu] = mfpu_result_req_i;
+    end
     ext_operand_req[masku_result_addr[idx_width(NrBanks)-1:0]][VFU_MaskUnit] =
     masku_result_req;
     ext_operand_req[sldu_result_addr[idx_width(NrBanks)-1:0]][VFU_SlideUnit] =
@@ -581,18 +636,19 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
     rr_arb_tree #(
       .NumIn    (unsigned'(MulFPUC) - unsigned'(AluA) + 1 + unsigned'(VFU_MFpu) - unsigned'(VFU_Alu) + 1),
       .DataWidth($bits(payload_t)                                                   ),
-      .AxiVldRdy(1'b0                                                               )
+      .AxiVldRdy(1'b0                                                               ),
+      .ExtPrio  (1'b1            ) // gukai@20250818
     ) i_hp_vrf_arbiter (
       .clk_i  (clk_i ),
       .rst_ni (rst_ni),
       .flush_i(1'b0  ),
-      .rr_i   ('0    ),
-      .data_i ({operand_payload[MulFPUC:AluA],
-          operand_payload[NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]} ),
-      .req_i ({lane_operand_req[bank][MulFPUC:AluA],
-          ext_operand_req[bank][VFU_MFpu:VFU_Alu]}),
-      .gnt_o ({operand_gnt[bank][MulFPUC:AluA],
-          operand_gnt[bank][NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]}),
+      .rr_i   ('b001    ),// gukai@20250818: enable Mfpu highest priority .rr_i   ('0    ),
+      .data_i ({operand_payload[MulFPUB],operand_payload[MulFPUA],operand_payload[MulFPUC],operand_payload[AluB:AluA],      // gukai@20250819: .data_i ({operand_payload[MulFPUC:AluA],
+           operand_payload[NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]} ),      // gukai@20250819: operand_payload[NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]} ),
+      .req_i ({lane_operand_req[bank][MulFPUB], lane_operand_req[bank][MulFPUA], lane_operand_req[bank][MulFPUC],lane_operand_req[bank][AluB:AluA],      // gukai@20250819: .req_i ({lane_operand_req[bank][MulFPUC:AluA],
+           ext_operand_req[bank][VFU_MFpu:VFU_Alu]}),     // gukai@20250819: ext_operand_req[bank][VFU_MFpu:VFU_Alu]}),
+      .gnt_o ({operand_gnt[bank][MulFPUB],operand_gnt[bank][MulFPUA], operand_gnt[bank][MulFPUC],operand_gnt[bank][AluB:AluA],     // gukai@20250819: .gnt_o ({operand_gnt[bank][MulFPUC:AluA],
+           operand_gnt[bank][NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]}),     // gukai@20250819: operand_gnt[bank][NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]}),
       .data_o (payload_hp    ),
       .idx_o  (/* Unused */  ),
       .req_o  (payload_hp_req),

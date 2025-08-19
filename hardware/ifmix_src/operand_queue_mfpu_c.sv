@@ -32,6 +32,7 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     output logic                              cmd_pop_o,
     // Interface with the Vector Register File
     input  elen_t                             operand_i,
+    input  elen_t [2:0]                       operand_vifmm_i,
     input  logic                              operand_valid_i,
     input  logic                              operand_issued_i,
     output logic                              operand_queue_ready_o,
@@ -114,21 +115,34 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     end
   end
 
+  elen_t  [3:0]     operand_fifo;
+
   always_comb begin
-    operand_push_valid_d = {operand_push_valid[2:0], operand_push_valid[3]};  // 1 left-shift 
+    
     ibuf_empty           = &ibuf_empty_pop[3:0];
 
-    if (transfer_all_quantize_en_i) begin
-      operand_pop_valid_d = {4{ibuf_pop}};
+    if (conv_vifmm_o == OpQueueConversionF32I8) begin
+      operand_push_valid_d = {4{operand_valid_i}};  
+      operand_fifo[0]    = operand_i;
+      operand_fifo[1]    = operand_vifmm_i[0];
+      operand_fifo[2]    = operand_vifmm_i[1];
+      operand_fifo[3]    = operand_vifmm_i[2];
+
+
+      operand_pop_valid_d = transfer_all_quantize_en_i ? {4{ibuf_pop }} : {operand_pop_valid[2:0], operand_pop_valid[3]} ;
       ibuf_operand        = ibuf_operand_pop[0];
     end else begin
+      operand_push_valid_d = {operand_push_valid[2:0], operand_push_valid[3]};  // 1 left-shift 
+      operand_fifo        = {4{operand_i}};
+
+
       operand_pop_valid_d  = {operand_pop_valid[2:0], operand_pop_valid[3]};  // 1 left-shift 
 
       ibuf_operand = {{64{operand_pop_valid[0]}} & ibuf_operand_pop[0]} | 
                      {{64{operand_pop_valid[1]}} & ibuf_operand_pop[1]} |
                      {{64{operand_pop_valid[2]}} & ibuf_operand_pop[2]} |
                      {{64{operand_pop_valid[3]}} & ibuf_operand_pop[3]};
-    end
+    end    
   end
 
   fifo_v3 #(
@@ -140,16 +154,15 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .rst_ni    (rst_ni         ),
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
-    .data_i    (operand_i      ),
-    .push_i    (operand_push_valid[0] & operand_valid_i),
+    .data_i    (operand_fifo[0]      ),
+    .push_i    (operand_push_valid_d[0] & operand_valid_i),
     .full_o    (/* Unused */   ),
     .data_o    (ibuf_operand_pop[0]   ),
-    .pop_i     (operand_pop_valid[0] & ibuf_pop       ),
+    .pop_i     (operand_pop_valid_d[0] & ibuf_pop       ),
     .empty_o   (ibuf_empty_pop[0]     ),
     .usage_o   (/* Unused */   )
   );
 
-  // gukai@20250624: Must provide 1 more depth to avoid the condition when write data if input_buffer_1/2/3 is full. 
   fifo_v3 #(
     .DEPTH     (DataBufDepth/4 + 1        ), //gukai@20250808
     // .DEPTH     (1+1),
@@ -159,11 +172,11 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .rst_ni    (rst_ni         ),
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
-    .data_i    (operand_i      ),
-    .push_i    (operand_push_valid[1] & operand_valid_i),
+    .data_i    (operand_fifo[1]      ),
+    .push_i    (operand_push_valid_d[1] & operand_valid_i),
     .full_o    (/* Unused */   ),
     .data_o    (ibuf_operand_pop[1]   ),
-    .pop_i     (operand_pop_valid[1] & ibuf_pop       ),
+    .pop_i     (operand_pop_valid_d[1] & ibuf_pop       ),
     .empty_o   (ibuf_empty_pop[1]     ),
     .usage_o   (/* Unused */   )
   );
@@ -177,11 +190,11 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .rst_ni    (rst_ni         ),
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
-    .data_i    (operand_i      ),
-    .push_i    (operand_push_valid[2] & operand_valid_i),
+    .data_i    (operand_fifo[2]      ),
+    .push_i    (operand_push_valid_d[2] & operand_valid_i),
     .full_o    (/* Unused */   ),
     .data_o    (ibuf_operand_pop[2]   ),
-    .pop_i     (operand_pop_valid[2] & ibuf_pop       ),
+    .pop_i     (operand_pop_valid_d[2] & ibuf_pop       ),
     .empty_o   (ibuf_empty_pop[2]     ),
     .usage_o   (/* Unused */   )
   );
@@ -195,15 +208,14 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     .rst_ni    (rst_ni         ),
     .testmode_i(1'b0           ),
     .flush_i   (flush_i        ),
-    .data_i    (operand_i      ),
-    .push_i    (operand_push_valid[3] & operand_valid_i),
+    .data_i    (operand_fifo[3]      ),
+    .push_i    (operand_push_valid_d[3] & operand_valid_i),
     .full_o    (/* Unused */   ),
     .data_o    (ibuf_operand_pop[3]   ),
-    .pop_i     (operand_pop_valid[3] & ibuf_pop       ),
+    .pop_i     (operand_pop_valid_d[3] & ibuf_pop       ),
     .empty_o   (ibuf_empty_pop[3]     ),
     .usage_o   (/* Unused */   )
   );
-  // gukai@20250620
 
   assign ibuf_operand_valid = !ibuf_empty;
 
@@ -223,7 +235,7 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
     if (flush_i) ibuf_usage_d = '0;
 
     // Are we ready?
-    operand_queue_ready_o = (ibuf_usage_q != DataBufDepth);
+    operand_queue_ready_o = (ibuf_usage_q != DataBufDepth/4);  // gukai@20250818
   end
 
   always_ff @(posedge clk_i or negedge rst_ni) begin: p_ibuf_usage_ff
@@ -618,6 +630,8 @@ module operand_queue_mfpu_c import ara_pkg::*; import rvv_pkg::*; import cf_math
           if (SupportIntExt8) elem_count_d = elem_count_q + (1 << (unsigned'(EW64) - unsigned'(cmd.eew))) / 8;
         OpQueueReductionZExt:
           elem_count_d = elem_count_q + 1;
+        OpQueueConversionF32I8: // gukai@20250813
+          elem_count_d = transfer_all_quantize_en_i ? elem_count_q + 8 :elem_count_q + (1 << (unsigned'(EW64) - unsigned'(cmd.eew)));
         default: elem_count_d = elem_count_q + (1 << (unsigned'(EW64) - unsigned'(cmd.eew)));
       endcase
 

@@ -450,19 +450,26 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
       end
 
       // gukai:20250219  reorganize the operand
-      // [0+:8]      = [7:0],   [32*1+:8] = [39:32]
-      // [32*0+16:8] = [23:16]  [32*1+16+:8] = [55:48]
       OpQueueConversionF32I8: begin
           unique case (cmd.eew)
             EW8 : begin
-              if (bytenum_per_op_q == 2'b00) begin
-                  for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 8* select + 7]}}, ibuf_operand[32*e + 8*select +: 8]};  
-              end else if (bytenum_per_op_q == 2'b01) begin
-                for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 16 + 8* select + 7]}}, ibuf_operand[32*e + 16 + 8*select +: 8]};  
-              end else if (bytenum_per_op_q == 2'b10) begin
-                for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 8 + 8* select + 7]}}, ibuf_operand[32*e + 8 + 8*select +: 8]};  
+              if (transfer_all_quantize_en_i) begin
+                conv_operand      =  {ibuf_operand[63:56],ibuf_operand[31:24],
+                                      ibuf_operand[47:40],ibuf_operand[15:8],
+                                      ibuf_operand[55:48],ibuf_operand[23:16],
+                                      ibuf_operand[39:32],ibuf_operand[7:0]};
               end else begin
-                for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 24 + 8* select + 7]}}, ibuf_operand[32*e + 24 + 8*select +: 8]};  
+                // [0+:8]      = [7:0],   [32*1+:8] = [39:32]
+                // [32*0+16:8] = [23:16]  [32*1+16+:8] = [55:48]
+                if (bytenum_per_op_q == 2'b00) begin
+                    for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 8* select + 7]}}, ibuf_operand[32*e + 8*select +: 8]};  
+                end else if (bytenum_per_op_q == 2'b01) begin
+                  for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 16 + 8* select + 7]}}, ibuf_operand[32*e + 16 + 8*select +: 8]};  
+                end else if (bytenum_per_op_q == 2'b10) begin
+                  for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 8 + 8* select + 7]}}, ibuf_operand[32*e + 8 + 8*select +: 8]};  
+                end else begin
+                  for (int e = 0; e < 2; e++) conv_operand[32*e +: 32] =  {{24{ibuf_operand[32*e + 24 + 8* select + 7]}}, ibuf_operand[32*e + 24 + 8*select +: 8]};  
+                end
               end
             end
             EW16: begin
@@ -541,7 +548,7 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
           // From 8/4 operands to 2 operands
           if (transfer_all_quantize_en_i) begin
             elem_count_d = elem_count_q + 8; // 8 elements in a 64-bit packet
-            bytenum_per_op_d =  bytenum_per_op_q + 4;
+            bytenum_per_op_d =  bytenum_per_op_q + 1;
           end else begin
             elem_count_d = elem_count_q + 2;
             bytenum_per_op_d =  bytenum_per_op_q + 1;
@@ -568,7 +575,7 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
       if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone) ibuf_pop = 1'b1;
 
       // gukai@20250312  if opa is 32 and opb is 8, ibuf_operand need change each 4 times
-      if (cmd.conv == OpQueueConversionF32I8 && bytenum_per_op_d >= 3'h4) begin
+      if (cmd.conv == OpQueueConversionF32I8 && ((!transfer_all_quantize_en_i && bytenum_per_op_d >= 3'h4)|| (transfer_all_quantize_en_i && bytenum_per_op_d >= 3'h1) )) begin
         ibuf_pop = 1'b1;
         bytenum_per_op_d = '0;
       end

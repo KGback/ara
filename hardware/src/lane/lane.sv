@@ -311,6 +311,10 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   logic                                       lsu_ex_flush_op_queues_d, lsu_ex_flush_op_queues_q;
   `FF(lsu_ex_flush_op_queues_q, lsu_ex_flush_op_queues_d, 1'b0, clk_i, rst_ni);
 
+  // gukai@20250803
+  logic         [1:0]                         vrf_vifmm_en;
+  elen_t        [2:0]                         mfpu_result_wdata_vifmm;
+
   operand_requester #(
     .NrLanes              (NrLanes              ),
     .VLEN                 (VLEN                 ),
@@ -337,6 +341,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .vrf_wdata_o              (vrf_wdata               ),
     .vrf_be_o                 (vrf_be                  ),
     .vrf_tgt_opqueue_o        (vrf_tgt_opqueue         ),
+    .vrf_vifmm_en_o          (vrf_vifmm_en           ),    // gukai@20250803
     // Interface with the operand queues
     .operand_issued_o         (operand_issued          ),
     .operand_queue_ready_i    (operand_queue_ready     ),
@@ -390,6 +395,8 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   // Interface with the operand queues
   elen_t [NrOperandQueues-1:0] vrf_operand;
   logic  [NrOperandQueues-1:0] vrf_operand_valid;
+  elen_t    [2:0]                 operand_a_vifmm;
+  elen_t    [2:0]                 operand_c_vifmm;
 
   vector_regfile #(
     .VRFSize(VRFSizePerLane   ),
@@ -405,8 +412,12 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .wdata_i        (vrf_wdata        ),
     .be_i           (vrf_be           ),
     .tgt_opqueue_i  (vrf_tgt_opqueue  ),
+    .vifmm_en_i     (vrf_vifmm_en     ), // gukai@20250803
     // Interface with the operand queues
+    .result_vifmm_i (mfpu_result_wdata_vifmm), // gukai@20250817
     .operand_o      (vrf_operand      ),
+    .operand_a_vifmm_o(operand_a_vifmm  ),
+    .operand_c_vifmm_o(operand_c_vifmm  ),
     .operand_valid_o(vrf_operand_valid)
   );
 
@@ -450,6 +461,8 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     // Interface with the Vector Register File
     .operand_i                        (vrf_operand                        ),
     .operand_valid_i                  (vrf_operand_valid                  ),
+    .operand_a_vifmm_i              (operand_a_vifmm                    ),
+    .operand_c_vifmm_i              (operand_c_vifmm                    ),
     // Interface with the operand requester
     .operand_issued_i                 (operand_issued                     ),
     .operand_queue_ready_o            (operand_queue_ready                ),
@@ -559,6 +572,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mfpu_result_id_o     (mfpu_result_id                         ),
     .mfpu_result_addr_o   (mfpu_result_addr                       ),
     .mfpu_result_wdata_o  (mfpu_result_wdata                      ),
+    .mfpu_result_wdata_vifmm_o (mfpu_result_wdata_vifmm),
     .mfpu_result_be_o     (mfpu_result_be                         ),
     .mfpu_result_gnt_i    (mfpu_result_gnt                        ),
     // Interface with the Slide Unit

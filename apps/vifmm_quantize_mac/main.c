@@ -30,7 +30,7 @@
 #define VEC_SIZE_0     16
 #define VEC_SIZE_1     16
 #define VEC_SIZE_2     16
-#define VEC_SIZE_3     100
+#define VEC_SIZE_3     288
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
 #define GS 64
@@ -643,19 +643,19 @@ int main() {
     }
     
 
-    // if (test2())
-    // {
-    //   printf("TEST2: PASS\n");
-    // } else {
-    //   printf("TEST2: FAILED\n");
-    // }
+    if (test2())
+    {
+      printf("TEST2: PASS\n");
+    } else {
+      printf("TEST2: FAILED\n");
+    }
 
-    // if (test3(x, w))
-    // {
-    //   printf("TEST3: PASS\n");
-    // } else {
-    //   printf("TEST3: FAILED\n");
-    // }
+    if (test3(x, w))
+    {
+      printf("TEST3: PASS\n");
+    } else {
+      printf("TEST3: FAILED\n");
+    }
 
     // if (test4(x, w))
     // {
