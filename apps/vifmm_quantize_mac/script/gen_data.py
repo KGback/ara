@@ -50,7 +50,7 @@ def emit(name, array, alignment='8'):
 #   sys.exit()
 d = 188
 n = 5 
-VEC_SIZE = 288*5000
+VEC_SIZE = 288*500
 P = 1 
 
 dtypew = np.int8
@@ -66,8 +66,10 @@ A = np.random.randint(low=-128,high=127,size=VEC_SIZE,dtype=np.int8)
 # w = qA.astype(dtypew)
 
 # 设置截断范围
-x_max = 0.999999999999
-x_min = -0.999999999999
+# x_max = 0.999999999999
+# x_min = -0.999999999999
+x_max = 1.1
+x_min = -x_max
 x_loc   = 0  # 原始均值
 x_scale = 1  # 标准差
 truncated_norm = truncnorm(x_min, x_max, x_loc, x_scale)

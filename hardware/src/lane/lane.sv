@@ -397,7 +397,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   logic  [NrOperandQueues-1:0] vrf_operand_valid;
   elen_t    [2:0]                 operand_a_vifmm;
   elen_t    [2:0]                 operand_c_vifmm;
-
+  
   vector_regfile #(
     .VRFSize(VRFSizePerLane   ),
     .NrBanks(NrVRFBanksPerLane),
@@ -445,7 +445,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   // gukai@20250523
   // transfer_pack_t     [1:0]                 vifmm_transfer_pack;
   // vifmm_conversion_e                vifmm_cov_type;
-  logic [3:0] [1:0]                          transfer_type;
+  logic[2:0]                   transfer_len;
   logic [3:0] [15:0]                         transfer_data;
   logic                                       transfer_all_quantize_en;
 
@@ -463,6 +463,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .operand_valid_i                  (vrf_operand_valid                  ),
     .operand_a_vifmm_i              (operand_a_vifmm                    ),
     .operand_c_vifmm_i              (operand_c_vifmm                    ),
+    .operand_vifmm_en_i            (vrf_vifmm_en                     ), // gukai@20250822
     // Interface with the operand requester
     .operand_issued_i                 (operand_issued                     ),
     .operand_queue_ready_o            (operand_queue_ready                ),
@@ -497,7 +498,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_operand_o                   (mask_operand_o[1:0]                ),
     .mask_operand_valid_o             (mask_operand_valid_o[1:0]          ),
     .mask_operand_ready_i             (mask_operand_ready_i[1:0]          ),
-    .transfer_type_o                  ( transfer_type ), // gukai@20250627
+    .transfer_len_o                  ( transfer_len ), // gukai@20250627
     .transfer_data_o                  ( transfer_data ), // gukai@20250627
     .transfer_all_quantize_en_o      ( transfer_all_quantize_en ) // gukai@20250627
   );
@@ -602,7 +603,7 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_valid_i         (mask_valid                             ),
     .mask_ready_o         (mask_ready                             ),
     .transfer_all_quantize_en_i       (transfer_all_quantize_en),  //gukai@20250626
-    .transfer_type_i        (transfer_type),  //gukai@20250626 
+    .transfer_len_i        (transfer_len),  //gukai@20250626 
     .transfer_data_i        (transfer_data)  //gukai@20250626  
   );
 

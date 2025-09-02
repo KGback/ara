@@ -21,6 +21,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     input  logic               [NrOperandQueues-1:0] operand_valid_i,
     input  elen_t    [2:0]                 operand_a_vifmm_i,
     input  elen_t    [2:0]                 operand_c_vifmm_i,
+    input  logic     [1:0]                 operand_vifmm_en_i, // gukai@20250822
     // Input with the Operand Requester
     input  logic               [NrOperandQueues-1:0] operand_issued_i,
     output logic               [NrOperandQueues-1:0] operand_queue_ready_o,
@@ -56,7 +57,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     output logic               [1:0]                 mask_operand_valid_o,
     input  logic               [1:0]                 mask_operand_ready_i,
 
-    output logic [3:0] [1:0]                          transfer_type_o,
+    output logic[2:0]                          transfer_len_o,
     output logic [3:0] [15:0]                         transfer_data_o,
     output logic                                    transfer_all_quantize_en_o
   );
@@ -135,16 +136,15 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
   //////////////////////
 
   // gukai@20250625: CONTROL module for choosing  quantization or compensation
-  logic [3:0] [1:0]                          transfer_type;
   logic [3:0] [15:0]                         transfer_data;
   logic                                    transfer_full_valid;
   elen_t [3:0]                            mfpu_operand_a, mfpu_operand_c;
   logic                                    transfer_all_quantize_en;
-  logic                                    cmd_dead;
+  logic                                    cmd_dead, elem_count_x8;
   logic[$clog2(VLEN+1)-1:0]                elem_sum_a, elem_sum_c;
   opqueue_conversion_e                     conv_vifmm_Pre, conv_vifmm_a, conv_vifmm_b, conv_vifmm_c;
 
-  assign transfer_type_o        = transfer_type;
+  assign transfer_len_o        = elem_sum_a[2:0];
   assign transfer_data_o        = transfer_data;
   assign transfer_all_quantize_en_o        = transfer_all_quantize_en;
 
@@ -167,8 +167,10 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .conv_dead_i          ( cmd_dead ),
     .elem_sum_a_i         ( elem_sum_a ), 
     .elem_sum_c_i         ( elem_sum_c ), 
+    .elem_count_x8_i       ( elem_count_x8 ),
     .operand_out_valid_i  ( mfpu_operand_valid_o ),
-    .transfer_type_o      ( transfer_type ),
+    .operand_ready_i      ( mfpu_operand_ready_i[1] ),
+    // .transfer_type_o      ( transfer_type ),
     .transfer_data_o      ( transfer_data ),
     .transfer_full_valid_o( transfer_full_valid ),
     .transfer_all_quantize_en_o( transfer_all_quantize_en ),
@@ -181,7 +183,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_valid_i      ( mfpu_operand_valid_o ),
     .operand_a_i          ( mfpu_operand_a ),
     .operand_c_i          ( mfpu_operand_c ),
-    .transfer_type_i      ( transfer_type       ),
+    // .transfer_type_i      ( transfer_type       ),
     .transfer_data_i      ( transfer_data       ),
     .conv_i               ( conv_vifmm_Pre )  ,
     .transfer_all_quantize_en_i ( transfer_all_quantize_en ),
@@ -210,6 +212,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .cmd_pop_o                (cmd_dead                         ),  // gukai@20250704
     .operand_i                (operand_i[MulFPUA]                ),
     .operand_vifmm_i    ( operand_a_vifmm_i )  ,
+    .operand_vifmm_en_i ( operand_vifmm_en_i[0] ), // gukai@20250822
     .operand_valid_i          (operand_valid_i[MulFPUA]          ),
     .operand_issued_i         (operand_issued_i[MulFPUA]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUA]    ),
@@ -219,7 +222,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_ready_i          (mfpu_operand_ready_i[0]           ),
     .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
     .conv_vifmm_o             (conv_vifmm_a                  ),
-    .elem_sum_a_o           (elem_sum_a                     )
+    .elem_sum_vifmm_o           (elem_sum_a                     )
   );
 
   operand_queue_mfpu_b #(
@@ -249,6 +252,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_valid_o          (mfpu_operand_valid_o[1]           ),
     .operand_ready_i          (mfpu_operand_ready_i[1]           ),
     .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
+    .elem_count_x8_o           ( elem_count_x8                  ), // gukai@20250820
     .conv_vifmm_o             (conv_vifmm_b                  )
   );
 
@@ -272,6 +276,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .cmd_pop_o                (/* Unused */                      ),
     .operand_i                (operand_i[MulFPUC]                ),
     .operand_vifmm_i    ( operand_c_vifmm_i )  ,
+    .operand_vifmm_en_i ( operand_vifmm_en_i[1] ), // gukai@20250822
     .operand_valid_i          (operand_valid_i[MulFPUC]          ),
     .operand_issued_i         (operand_issued_i[MulFPUC]         ),
     .operand_queue_ready_o    (operand_queue_ready_o[MulFPUC]    ),
@@ -281,7 +286,7 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     .operand_ready_i          (mfpu_operand_ready_i[2]           ),
     .transfer_all_quantize_en_i          ( transfer_all_quantize_en ),
     .conv_vifmm_o             (conv_vifmm_c                  ),
-    .elem_sum_c_o           (elem_sum_c                     )
+    .elem_sum_vifmm_o           (elem_sum_c                     )
   );
 
   ///////////////////////

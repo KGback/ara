@@ -83,7 +83,7 @@ package ara_pkg;
   localparam int unsigned LatMultiplierEW64 = 1;
   localparam int unsigned LatMultiplierEW32 = 1;
   localparam int unsigned LatMultiplierEW16 = 1;
-  localparam int unsigned LatMultiplierEW8  = 0; //gukai@20250811 0 -> 1
+  localparam int unsigned LatMultiplierEW8  = 1; //gukai@20250811 0 -> 1
 
   // FPU latencies.
   localparam int unsigned LatFCompEW64    = 'd5;

@@ -83,7 +83,7 @@ module vector_fus_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg
     input  logic                              mask_valid_i,
     output logic                              mask_ready_o,
     input  logic                         transfer_all_quantize_en_i,
-    input  logic [3:0] [1:0] transfer_type_i, 
+    input  logic[2:0] transfer_len_i, 
     input  logic [3:0] [15:0]       transfer_data_i  //gukai@20250626
   );
 
@@ -209,7 +209,7 @@ module vector_fus_stage import ara_pkg::*; import rvv_pkg::*; import cf_math_pkg
     .mask_valid_i         (mask_valid_i                    ),
     .mask_ready_o         (mfpu_mask_ready                 ),
     .transfer_all_quantize_en_i       (transfer_all_quantize_en_i),  //gukai@20250626
-    .transfer_type_i        (transfer_type_i),  //gukai@20250626 
+    .transfer_len_i        (transfer_len_i),  //gukai@20250626 
     .transfer_data_i        (transfer_data_i)  //gukai@20250626  
   );
 

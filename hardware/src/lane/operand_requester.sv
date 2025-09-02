@@ -642,7 +642,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
       .clk_i  (clk_i ),
       .rst_ni (rst_ni),
       .flush_i(1'b0  ),
-      .rr_i   ('b001    ),// gukai@20250818: enable Mfpu highest priority .rr_i   ('0    ),
+      .rr_i   (3'b001    ),// gukai@20250818: enable Mfpu highest priority .rr_i   ('0    ),
       .data_i ({operand_payload[MulFPUB],operand_payload[MulFPUA],operand_payload[MulFPUC],operand_payload[AluB:AluA],      // gukai@20250819: .data_i ({operand_payload[MulFPUC:AluA],
            operand_payload[NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]} ),      // gukai@20250819: operand_payload[NrOperandQueues + VFU_MFpu:NrOperandQueues + VFU_Alu]} ),
       .req_i ({lane_operand_req[bank][MulFPUB], lane_operand_req[bank][MulFPUA], lane_operand_req[bank][MulFPUC],lane_operand_req[bank][AluB:AluA],      // gukai@20250819: .req_i ({lane_operand_req[bank][MulFPUC:AluA],

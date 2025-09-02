@@ -36,7 +36,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     input  logic       ready_i,
     output logic       valid_o,
     input  logic       transfer_all_quantize_en_i, // gukai@20250626
-    input  logic [3:0] [1:0] transfer_type_i, // gukai@20250609
+    input  logic [2:0] transfer_len_i, // gukai@20250609
     input  logic [3:0] [15:0]       transfer_data_i,  // gukai@20250524
     output elen_t [2:0]       result_vifmm_o  // gukai@20250816
   );
@@ -58,6 +58,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   ara_op_e      op;
 
   logic [1:0][64-1:0] result_tmp;  // gukai@20250524
+  logic valid_postu; // gukai@20250821
 
   ///////////////////////
   //  Pipeline stages  //
@@ -125,7 +126,8 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   assign opc     = opc_d[NumPipeRegs];
   assign op      = op_d[NumPipeRegs];
   assign mask_o  = mask_d[NumPipeRegs];
-  assign valid_o = valid_d[NumPipeRegs];
+  // assign valid_o = valid_d[NumPipeRegs];
+  assign valid_postu = valid_d[NumPipeRegs]; // gukai@20250821
 
   // Output stage: Ready travels backwards from output side
   assign stage_ready[NumPipeRegs] = ready_i;
@@ -294,7 +296,7 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
       unique case (op)
         // Single-Width integer multiply instructions
         VIFMM:   // gukai@20250303
-          if (transfer_all_quantize_en_i) begin
+          begin
             for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w16[l][15:0] + {{8{opc.w8[l][7]}},opc.w8[l]};
             for (int l = 4; l < 8; l++) result_tmp[1][16*(l-4) +: 16] = mul_res.w16[l][15:0] + {{8{opc.w8[l][7]}},opc.w8[l]};
           end
@@ -325,15 +327,18 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   end : gen_p_mul_error
 
 // gukai@20260526
-PostU i_PostU (
+PostU  #(
+  .ElementWidth               (ElementWidth        )
+) i_PostU (
   .clk_i                      (clk_i              ),
   .rst_ni                     (rst_ni             ),
-  .valid_i                    (valid_o            ),
+  .valid_i                    (valid_postu            ),
   .result_i                   (result_tmp         ),  
-  .transfer_type_i            (transfer_type_i    ),          
+  .transfer_len_i            (transfer_len_i    ),          
   .transfer_data_i            (transfer_data_i    ),        
-  .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
+  // .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
   .op_i                       (op     ),  
+  .valid_o                    ( valid_o ),
   .result_o                   (result_o     ),
   .result1_o                  (result_vifmm_o[0]),
   .result2_o                  (result_vifmm_o[1]),
