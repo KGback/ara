@@ -50,7 +50,7 @@ def emit(name, array, alignment='8'):
 #   sys.exit()
 d = 188
 n = 5 
-VEC_SIZE = 500
+VEC_SIZE = 1024
 P = 1 
 
 dtypew = np.int8
@@ -77,8 +77,8 @@ q_W = W / scale
 QW = q_W.astype(dtypew)
 
 # 设置截断范围
-x_max = 2
-x_min = -1.9
+x_max = 1.5
+x_min = -x_max
 x_loc   = 0  # 原始均值
 x_scale = 1  # 标准差
 truncated_norm = truncnorm(x_min, x_max, x_loc, x_scale)

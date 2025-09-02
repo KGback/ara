@@ -68,7 +68,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     input  logic                         mask_valid_i,
     output logic                         mask_ready_o,
     input  logic                         transfer_all_quantize_en_i,
-    input  logic[2:0] transfer_len_i, 
     input  logic [3:0] [15:0]       transfer_data_i  
   );
 
@@ -137,10 +136,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
   // gukai@20250811
   logic       transfer_all_quantize_en_ff1,transfer_all_quantize_en_ff2;
-  logic [2:0] transfer_len_ff1,transfer_len_ff2;
   logic [3:0] [15:0]       transfer_data_ff1,transfer_data_ff2,transfer_data_ew32, transfer_data_ew8;
   elen_t [2:0]       result_vifmm_ew8,result_vifmm_ew32;  // gukai@20250816
-  logic        issue_end, processing_end, commit_end;
   vew_e        issue_sew_d, issue_sew_q, issue_sew;
   vew_e        processing_sew_d, processing_sew_q, processing_sew;
   vew_e        commit_sew_d, commit_sew_q,commit_sew;
@@ -428,8 +425,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
       // gukai@20250219
       transfer_all_quantize_en_ff1 <= 1'b0;
       transfer_all_quantize_en_ff2 <= 1'b0;
-      transfer_len_ff1  <= '0;
-      transfer_len_ff2  <= '0;
       transfer_data_ff1  <= '0;
       transfer_data_ff2  <= '0;
       for (int i = 0; i < 3; i++) begin
@@ -441,8 +436,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
       // gukai@20250219
       transfer_all_quantize_en_ff1 <= transfer_all_quantize_en_i;
       transfer_all_quantize_en_ff2 <= transfer_all_quantize_en_ff1;
-      transfer_len_ff1         <= transfer_len_i;
-      transfer_len_ff2         <= transfer_len_ff1;
       transfer_data_ff1         <= transfer_data_i;
       transfer_data_ff2         <= transfer_data_ff1;
       for (int i = 0; i < 3; i++) begin
@@ -472,8 +465,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW64]      ),
     .ready_i    (vmul_simd_out_ready[EW64]     ),
     .valid_o    (vmul_simd_out_valid[EW64]     ),
-    // .transfer_all_quantize_en_i (transfer_all_quantize_en_ff2), // gukai@20250626
-    .transfer_len_i (transfer_len_ff2), // gukai@20250609
     .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
@@ -497,8 +488,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW32]      ),
     .ready_i    (vmul_simd_out_ready[EW32]     ),
     .valid_o    (vmul_simd_out_valid[EW32]     ),
-    // .transfer_all_quantize_en_i (transfer_all_quantize_en_ff2), // gukai@20250626
-    .transfer_len_i (transfer_len_ff2), // gukai@20250609
     .transfer_data_i (transfer_data_ew32), // gukai@20250524
     .result_vifmm_o  (result_vifmm_ew32)
   );
@@ -523,8 +512,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW16]      ),
     .ready_i    (vmul_simd_out_ready[EW16]     ),
     .valid_o    (vmul_simd_out_valid[EW16]     ),
-    // .transfer_all_quantize_en_i (transfer_all_quantize_en_ff2), // gukai@20250626
-    .transfer_len_i (transfer_len_ff2), // gukai@20250609
     .transfer_data_i (transfer_data_ff2) // gukai@20250524
   );
 
@@ -548,8 +535,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     .ready_o    (vmul_simd_in_ready[EW8]       ), // gukai@20250816: simd_mul is ready to receive the operands and generate the result
     .ready_i    (vmul_simd_out_ready[EW8]      ), // gukai@20250816, tell simd_mul that vmfpu is ready to receive the result
     .valid_o    (vmul_simd_out_valid[EW8]      ),
-    // .transfer_all_quantize_en_i (transfer_all_quantize_en_ff1), // gukai@20250626
-    .transfer_len_i (transfer_len_ff1), // gukai@20250819
     .transfer_data_i (transfer_data_ew8), // gukai@20250819
     .result_vifmm_o  (result_vifmm_ew8)
   );
@@ -582,7 +567,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
   // gukai@20250826
   logic [2:0] state_vifmm_issue_d,state_vifmm_issue_q;
   logic [2:0] state_vifmm_processing_d,state_vifmm_processing_q;
-  logic       vifmm_stall;
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       issue_sew_q             <= EW8;
@@ -605,8 +589,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     vinsn_processing_q = vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt];
     processing_sew_d = ((transfer_all_quantize_en_i & operands_valid)) ? EW8 : vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].vtype.vsew;
 
-      vifmm_stall              = '0;
-
     state_vifmm_issue_d = vinsn_issue_q_valid ? state_vifmm_issue_q: EW8;
     if (vinsn_queue_q.vinsn[vinsn_queue_q.issue_pnt].op == VIFMM && operands_valid) begin
       case (state_vifmm_issue_q)
@@ -624,7 +606,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
           if (issue_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay two cycles, wait First cycle
             vinsn_issue_q.vtype.vsew = EW8; 
             state_vifmm_issue_d = 2'h0; 
-            // vifmm_stall              = 1'b1;       // wait for SIMD32 result of simd_mul 
           end else begin
             state_vifmm_issue_d = 2'h1;  // EW32 -> EW32
           end
@@ -649,13 +630,13 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     state_vifmm_processing_d = vinsn_processing_q_valid ? state_vifmm_processing_d: EW8;
     transfer_data_ew8        = transfer_data_ff2;
     transfer_data_ew32       = transfer_data_ff2;
-
-    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && ( operands_valid | (|vmul_simd_in_valid_q[3:0])|(|vmul_simd_out_valid[3:0]))) begin
+    
+    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && ( (|vmul_simd_in_valid_q[3:0]) | (|vmul_simd_out_valid[3:0]))) begin
       case (state_vifmm_processing_q)
         3'h0: begin  // EW8
-          if (processing_sew_d == EW8) begin
+          if (processing_sew_q == EW8) begin
             vinsn_processing_q.vtype.vsew = EW8; // EW8 all quantize, no delay
-            state_vifmm_processing_d = 2'h3;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
+            state_vifmm_processing_d = 3'h4;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
           end else begin
             vinsn_processing_q.vtype.vsew = EW32; 
             state_vifmm_processing_d = 2'h1;  
@@ -663,8 +644,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
         end 
         3'h1: begin  // EW32
           vinsn_processing_q.vtype.vsew = EW32; 
-          if (processing_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
-            state_vifmm_processing_d = 2'h2; 
+          if (processing_sew_q == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
+            state_vifmm_processing_d = 3'h4; 
           end else begin
             state_vifmm_processing_d = 2'h1;  // EW32 -> EW32
           end
@@ -684,7 +665,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
           if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
             state_vifmm_processing_d = 3'h4; 
           end else begin
-            state_vifmm_processing_d = 2'h0;  // EW8 -> EW32
+            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
           end
         end
         3'h5: begin  // EW8 all quantize, keep second cycle, 
@@ -699,6 +680,55 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             default: ;
       endcase
     end
+//    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && ( operands_valid | (|vmul_simd_in_valid_q[3:0])|(|vmul_simd_out_valid[3:0]))) begin
+//      case (state_vifmm_processing_q)
+//        3'h0: begin  // EW8
+//          if (processing_sew_d == EW8) begin
+//            vinsn_processing_q.vtype.vsew = EW8; // EW8 all quantize, no delay
+//            state_vifmm_processing_d = 2'h3;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
+//          end else begin
+//            vinsn_processing_q.vtype.vsew = EW32; 
+//            state_vifmm_processing_d = 2'h1;  
+//          end
+//        end 
+//        3'h1: begin  // EW32
+//          vinsn_processing_q.vtype.vsew = EW32; 
+//          if (processing_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
+//            state_vifmm_processing_d = 2'h2; 
+//          end else begin
+//            state_vifmm_processing_d = 2'h1;  // EW32 -> EW32
+//          end
+//        end
+//        3'h2: begin  // EW32 -> EW8 all quantize, first cycle, wait the result of SIMD32
+//          vinsn_processing_q.vtype.vsew = EW32; 
+//          state_vifmm_processing_d = 3'h4;
+//        end
+//        3'h3: begin  // EW8 all quantize, keep second cycle, 
+//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
+//          vinsn_processing_q.vtype.vsew = EW8;
+//          state_vifmm_processing_d = 3'h4;
+//        end
+//        3'h4: begin  // EW8 all quantize, keep second cycle, 
+//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
+//          vinsn_processing_q.vtype.vsew = EW8;
+//          if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
+//            state_vifmm_processing_d = 3'h4; 
+//          end else begin
+//            state_vifmm_processing_d = 2'h0;  // EW8 -> EW32
+//          end
+//        end
+//        3'h5: begin  // EW8 all quantize, keep second cycle, 
+//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
+//          vinsn_processing_q.vtype.vsew = EW8;
+//          if (processing_sew_d == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
+//            state_vifmm_processing_d = 3'h4; 
+//          end else begin
+//            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
+//          end
+//        end
+//            default: ;
+//      endcase
+//    end
 
 /*
     vifmm_stall              = '0;
@@ -1670,10 +1700,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     vdiv_out_ready = ~result_queue_full && (vinsn_processing_q.op inside {[VDIVU:VREM]});
     vfpu_out_ready = ~result_queue_full && (vinsn_processing_q.op inside {[VFADD:VMFGE]});
 
-    // gukai@20250826
-    issue_end      = '0;
-    processing_end = '0;
-    commit_end     = '0;
     // Valid of the unit in use (i.e., result queue input valid) is not asserted by default
     unit_out_valid  = 1'b0;
     unit_out_result = vmul_result;
@@ -1790,7 +1816,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
         endcase
 
         // Is there a vector instruction ready to be issued and do we have all the operands necessary for this instruction?
-        if (operands_valid && vinsn_issue_q_valid && !is_reduction(vinsn_issue_q.op) && issue_cnt_q != '0 && !latency_stall && !vifmm_stall) begin
+        if (operands_valid && vinsn_issue_q_valid && !is_reduction(vinsn_issue_q.op) && issue_cnt_q != '0 && !latency_stall) begin
           // Valiudate the inputs of the correct unit
           vmul_in_valid = vinsn_issue_mul;
           vdiv_in_valid = vinsn_issue_div;
@@ -1843,7 +1869,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
             // Finished issuing the micro-operations of this vector instruction
             if (issue_cnt_d == '0) begin
-              issue_end = 1'b1;  // gukai@20250826
               // Reset the input narrowing pointer
               narrowing_select_in_d = 1'b0;
 
@@ -1994,7 +2019,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
           // Finished issuing the micro-operations of this vector instruction
           if (to_process_cnt_d == '0) begin
-            processing_end = 1'b1;  // gukai@20250826
             narrowing_select_out_d = 1'b0;
 
             vinsn_queue_d.processing_cnt -= 1;
@@ -2511,7 +2535,6 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
 
     // Finished committing the results of a vector instruction
     if (vinsn_commit_valid && (commit_cnt_d == '0) && !prevent_commit) begin
-      commit_end = 1'b1;  // gukai@20250826
       // Mark the vector instruction as being done
       mfpu_vinsn_done_o[vinsn_commit.id] = 1'b1;
 

@@ -5,7 +5,6 @@ module PostU import ara_pkg::*; import rvv_pkg::*; #(
     input  logic                    rst_ni,
     input  logic                    valid_i,
     input  elen_t [1:0]             result_i,
-    input  logic[2:0]           transfer_len_i, 
     input  logic [3:0] [15:0]       transfer_data_i,  
     input  logic                    transfer_all_quantize_en_i,
     input  ara_op_e                 op_i,
@@ -61,8 +60,7 @@ if (ElementWidth == EW32) begin  : COMPENSATE
       result2_o = result_d[2];
       result3_o = result_d[3];
 
-      valid_o = (valid_i & (  pointer_d == transfer_len_i[2:1] // transfer_len < 4
-                            | pointer_q == 2'b11));   // transfer_len >= 4
+      valid_o = (valid_i & ( pointer_q == 2'b11));   // transfer_len >= 4
     end else begin
       result_d = '0;
       result_o =  result_i;

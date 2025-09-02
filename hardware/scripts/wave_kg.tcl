@@ -249,7 +249,7 @@ add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ar
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/conv_operand}
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/conv_vifmm_o}
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_valid_o}
-add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a -color Khaki -subitemconfig {{/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o[3]} {-color Khaki} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o[2]} {-color Khaki} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o[1]} {-color Khaki} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o[0]} {-color Khaki}} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o}
+add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a -color Khaki {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_o}
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/operand_vifmm_en_i}
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/ibuf_usage_d}
 add wave -noupdate -expand -group LANE0 -expand -group operand_queue_mfpu_a {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_operand_queues/i_operand_queue_mfpu_a/ibuf_usage_q}
@@ -341,7 +341,7 @@ add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfu_operation_valid_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfu_operation_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_valid_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -color Khaki -expand -subitemconfig {{/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[2]} {-color Khaki} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[1]} {-color Khaki} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[0]} {-color Khaki}} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -color Khaki -expand -subitemconfig {{/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[2]} {-color Khaki -height 17} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[1]} {-color Khaki -height 17} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i[0]} {-color Khaki -height 17}} {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_operand_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vmul_simd_op_a_q}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/operands_valid}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vmul_in_valid}
@@ -409,29 +409,29 @@ add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/transfer_data_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/transfer_data_ff1}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/transfer_data_ff2}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/ready_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/ready_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/valid_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_a_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_b_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_c_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/transfer_data_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opa}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opb}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opc}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_tmp}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -expand {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_vifmm_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/valid_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/valid_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/transfer_data_i}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/COMPENSATE/pointer_d}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/COMPENSATE/pointer_q}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result1_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result2_o}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result3_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/ready_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/ready_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/valid_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_a_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_b_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/operand_c_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/transfer_data_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opa}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opb}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/opc}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_tmp}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -expand {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_vifmm_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/result_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/valid_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/valid_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/transfer_data_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/COMPENSATE/pointer_d}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/COMPENSATE/pointer_q}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result1_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result2_o}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_32 -group PostU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/result3_o}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/mfpu_state_q}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group FPNEW {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/fpu_gen/i_fpnew_bulk/in_valid_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group FPNEW -expand {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/fpu_gen/i_fpnew_bulk/operands_i}
@@ -439,16 +439,12 @@ add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group FPNEW {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/fpu_gen/i_fpnew_bulk/out_valid_o}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group FPNEW {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/fpu_gen/i_fpnew_bulk/result_o}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group FPNEW {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfpu_processed_result}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfpu_tag_out}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfpu_tag_in}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/intra_op_rx_cnt_d}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/intra_op_rx_cnt_q}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfpu_out_valid}
-add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vfpu_in_ready}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_16 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew16/valid_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_16 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew16/operand_a_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_16 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew16/operand_b_i}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU -group SIMD_MUL_16 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew16/operand_c_i}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vmul_simd_out_valid}
+add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vmul_result}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/vmul_out_valid}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/unit_out_valid}
 add wave -noupdate -expand -group LANE0 -expand -group VFUS -expand -group VMFPU {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[0]/i_lane/i_vfus/i_vmfpu/result_queue_read_pnt_d}
@@ -588,8 +584,8 @@ add wave -noupdate -group LANE1 -expand -group VFUS -expand -group VMFPU -expand
 add wave -noupdate -group LANE1 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[1]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/i_PostU/COMPENSATE/fp32_exponent}
 add wave -noupdate -group LANE1 -expand -group VFUS -expand -group VMFPU -expand -group SIMD_MUL_32 {/ara_tb/dut/i_ara_soc/i_system/i_ara/gen_lanes[1]/i_lane/i_vfus/i_vmfpu/i_simd_mul_ew32/valid_o}
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 9} {1896004475 ps} 0} {{Cursor 4} {228830445 ps} 0} {{Cursor 6} {1603511500 ps} 0} {{Cursor 4} {3250434500 ps} 0} {{Cursor 5} {1895996500 ps} 0} {{Cursor 6} {1896002506 ps} 0}
-quietly wave cursor active 3
+WaveRestoreCursors {{Cursor 9} {1896004475 ps} 0} {{Cursor 4} {7530424 ps} 0} {{Cursor 6} {1603511500 ps} 0} {{Cursor 4} {3250434500 ps} 0} {{Cursor 5} {1895996500 ps} 0} {{Cursor 6} {1896002506 ps} 0}
+quietly wave cursor active 2
 configure wave -namecolwidth 427
 configure wave -valuecolwidth 186
 configure wave -justifyvalue left
@@ -604,4 +600,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {1603508202 ps} {1603517192 ps}
+WaveRestoreZoom {7521211 ps} {7546307 ps}

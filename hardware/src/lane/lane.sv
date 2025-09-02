@@ -443,9 +443,6 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   logic sldu_addrgen_operand_opqueues_valid;
 
   // gukai@20250523
-  // transfer_pack_t     [1:0]                 vifmm_transfer_pack;
-  // vifmm_conversion_e                vifmm_cov_type;
-  logic[2:0]                   transfer_len;
   logic [3:0] [15:0]                         transfer_data;
   logic                                       transfer_all_quantize_en;
 
@@ -498,7 +495,6 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_operand_o                   (mask_operand_o[1:0]                ),
     .mask_operand_valid_o             (mask_operand_valid_o[1:0]          ),
     .mask_operand_ready_i             (mask_operand_ready_i[1:0]          ),
-    .transfer_len_o                  ( transfer_len ), // gukai@20250627
     .transfer_data_o                  ( transfer_data ), // gukai@20250627
     .transfer_all_quantize_en_o      ( transfer_all_quantize_en ) // gukai@20250627
   );
@@ -603,7 +599,6 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     .mask_valid_i         (mask_valid                             ),
     .mask_ready_o         (mask_ready                             ),
     .transfer_all_quantize_en_i       (transfer_all_quantize_en),  //gukai@20250626
-    .transfer_len_i        (transfer_len),  //gukai@20250626 
     .transfer_data_i        (transfer_data)  //gukai@20250626  
   );
 

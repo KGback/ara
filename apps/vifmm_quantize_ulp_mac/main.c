@@ -16,7 +16,8 @@
 #define VEC_SIZE_0     16
 #define VEC_SIZE_1     16
 #define VEC_SIZE_2     16
-#define VEC_SIZE_3     500
+#define VEC_SIZE_3     1024
+#define GROUP_SIZE   64
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
 
@@ -50,11 +51,12 @@ void compute( int8_t* w,  float* x_f,float* xinit, float* xp, int size) {
   block_size = size;
 
   asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
+  asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
   asm volatile("vle32.v v0, (%0);" ::"r"(xinit));
   asm volatile("vsetvli zero, %0, e8, m2, ta, ma" ::"r"(block_size));    
   asm volatile("vle8.v v24, (%0);" ::"r"(w));
   asm volatile("vsetvli zero, %0, e32, m8, ta, ma" ::"r"(block_size));    
-  asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
+  // asm volatile("vle32.v v16, (%0);" ::"r"(x_f));
   asm volatile("vifbw.vv v0, v16, v24");  // llvm
   // asm volatile("vifbw v0, v24, v16");   // gcc
 
@@ -62,7 +64,6 @@ void compute( int8_t* w,  float* x_f,float* xinit, float* xp, int size) {
   asm volatile("vse32.v v0, (%0);" ::"r"(xp));
 
 }
-
 // fp * 1
 int test0() {
   //   int8_t  w_int8[VEC_SIZE_0]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
@@ -198,10 +199,6 @@ float quantize(int8_t *qx, float* x, int n) {
 }
 
 int test3(float* x_fp32, int8_t* w_int8) {
-    // int8_t  w_int8[VEC_SIZE_3] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-    //   float x_fp32[VEC_SIZE_3]   = {   2.0,    0.1,  0.256, 0.35, 0.86,  0.7, 0.0026,  0.4, 
-                                //  1.5,    0.9,    1.8, -0.1,  2.0, -2.0,    0.3,  0.0,
-    // float x_fp32[VEC_SIZE_3] = {-0.017, -0.015, -0.016,   10,  150,  -10,      1,    2,                                 300,   -250,      8,  100,  100,   0 ,    0.5, 0.15};
     float res_vifmm[VEC_SIZE_3];
     float gold_fp32[VEC_SIZE_3];
     int8_t qx[VEC_SIZE_3];
@@ -236,9 +233,9 @@ int test3(float* x_fp32, int8_t* w_int8) {
     printf("\n");
 
 
-    scale = quantize(qx, x, VEC_SIZE_3);
+    scale = quantize(qx, x, GROUP_SIZE);
     printf("X FP32 TO INT8 RES:");
-    for (int i = 0; i < VEC_SIZE_3; i++)
+    for (int i = 0; i < GROUP_SIZE; i++)
     {
       res_qx_tmp = (int16_t)w_int8[i] * (int16_t)qx[i];
       res_qx_fp32[i] = (float)res_qx_tmp * scale + (float)xinit[i];
@@ -246,7 +243,7 @@ int test3(float* x_fp32, int8_t* w_int8) {
     }
     printf("\n");
     printf("X FP32 TO INT8 ULP:");
-    for (int i = 0; i < VEC_SIZE_3; i++)
+    for (int i = 0; i < GROUP_SIZE; i++)
     {
       printf(" %d \t", float_ulp_distance(res_qx_fp32[i], gold_fp32[i]));
     }

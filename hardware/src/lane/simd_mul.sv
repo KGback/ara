@@ -36,7 +36,6 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     input  logic       ready_i,
     output logic       valid_o,
     input  logic       transfer_all_quantize_en_i, // gukai@20250626
-    input  logic [2:0] transfer_len_i, // gukai@20250609
     input  logic [3:0] [15:0]       transfer_data_i,  // gukai@20250524
     output elen_t [2:0]       result_vifmm_o  // gukai@20250816
   );
@@ -334,7 +333,6 @@ PostU  #(
   .rst_ni                     (rst_ni             ),
   .valid_i                    (valid_postu            ),
   .result_i                   (result_tmp         ),  
-  .transfer_len_i            (transfer_len_i    ),          
   .transfer_data_i            (transfer_data_i    ),        
   // .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
   .op_i                       (op     ),  

@@ -231,9 +231,9 @@ always_comb begin
             for (int l = 0; l < 8; l++) begin
                 // if ( operand_a_comp[l].e[7] || (| operand_a_comp[l].e[6:1]) || operand_c_comp[l].e[7] || (| operand_c_comp[l].e[6:1] ) ) begin   // > 8
                 // if ( operand_a_comp[l].e[7] || (| operand_a_comp[l].e[6:0]) || operand_c_comp[l].e[7] || (| operand_c_comp[l].e[6:0] ) ) begin   // > 4
-                if ( operand_a_comp[l].e[7] || operand_c_comp[l].e[7] ) begin   // > 2
+                // if ( operand_a_comp[l].e[7] || operand_c_comp[l].e[7] ) begin   // > 2
                 // if ( operand_a_comp[l].e[7] || (& operand_a_comp[l].e[6:0] || operand_c_comp[l].e[7] || (& operand_c_comp[l].e[6:0] ) ) ) begin   // > 1
-                // if ( operand_a_comp[l].e[7] || (& operand_a_comp[l].e[6:1] ) || operand_a_comp[l].e[7] || (& operand_c_comp[l].e[6:1] ) ) begin   // > 0.5
+                if ( operand_a_comp[l].e[7] || (& operand_a_comp[l].e[6:1] ) || operand_a_comp[l].e[7] || (& operand_c_comp[l].e[6:1] ) ) begin   // > 0.5
                 // if ( operand_a_comp[l].e[7] || (& operand_a_comp[l].e[6:2] ) || operand_c_comp[l].e[7] || (& operand_c_comp[l].e[6:2] ) ) begin   // > 0.125
                 // if ( operand_a_comp[l].e[7] || (& operand_a_comp[l].e[6:3] ) || operand_c_comp[l].e[7] || (& operand_c_comp[l].e[6:3] ) ) begin   // > 0.0078740
                     transfer_type_d[l]       = 0; // compensate

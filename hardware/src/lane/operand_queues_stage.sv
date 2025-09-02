@@ -57,7 +57,6 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
     output logic               [1:0]                 mask_operand_valid_o,
     input  logic               [1:0]                 mask_operand_ready_i,
 
-    output logic[2:0]                          transfer_len_o,
     output logic [3:0] [15:0]                         transfer_data_o,
     output logic                                    transfer_all_quantize_en_o
   );
@@ -144,7 +143,6 @@ module operand_queues_stage import ara_pkg::*; import rvv_pkg::*; import cf_math
   logic[$clog2(VLEN+1)-1:0]                elem_sum_a, elem_sum_c;
   opqueue_conversion_e                     conv_vifmm_Pre, conv_vifmm_a, conv_vifmm_b, conv_vifmm_c;
 
-  assign transfer_len_o        = elem_sum_a[2:0];
   assign transfer_data_o        = transfer_data;
   assign transfer_all_quantize_en_o        = transfer_all_quantize_en;
 
