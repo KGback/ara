@@ -54,6 +54,7 @@ module vector_regfile import ara_pkg::*; #(
   logic     [NrBanks-1:0] xbar_rdata_valid_q;
   opqueue_e [NrBanks-1:0] xbar_tgt_opqueue_q;
   elen_t    [NrBanks-1:0]         vrf_wdata;
+
   always_comb begin
     xbar_rdata_valid_q = rdata_valid_q;
     xbar_tgt_opqueue_q = tgt_opqueue_q;

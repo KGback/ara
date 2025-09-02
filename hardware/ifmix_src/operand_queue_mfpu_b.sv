@@ -41,6 +41,7 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
     output logic                              operand_valid_o,
     input  logic               [NrSlaves-1:0] operand_ready_i,
     input  logic                              transfer_all_quantize_en_i, // gukai@20250626
+    output logic                             elem_count_x8_o,  // gukai@20250820
     output opqueue_conversion_e               conv_vifmm_o // gukai@20250523
   );
 
@@ -526,6 +527,7 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
 
     // gukai@20250310
     bytenum_per_op_d = bytenum_per_op_q;
+    elem_count_x8_o  = '0; // gukai@20250826
 
     // Account for sent operands
     if (operand_valid_o && |operand_ready_i) begin
@@ -553,9 +555,8 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
             elem_count_d = elem_count_q + 2;
             bytenum_per_op_d =  bytenum_per_op_q + 1;
           end
-          // end else begin
-
-          // end
+          
+          elem_count_x8_o = (~(|elem_count_d[2:0])); // gukai@20250826
         
         end
           
@@ -575,7 +576,7 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
       if ((select_q != '0 && select_d == '0) || cmd.conv == OpQueueConversionNone) ibuf_pop = 1'b1;
 
       // gukai@20250312  if opa is 32 and opb is 8, ibuf_operand need change each 4 times
-      if (cmd.conv == OpQueueConversionF32I8 && ((!transfer_all_quantize_en_i && bytenum_per_op_d >= 3'h4)|| (transfer_all_quantize_en_i && bytenum_per_op_d >= 3'h1) )) begin
+      if (cmd.conv == OpQueueConversionF32I8 && ((!(transfer_all_quantize_en_i) && bytenum_per_op_d >= 3'h4)|| ((transfer_all_quantize_en_i) && bytenum_per_op_d >= 3'h1) )) begin
         ibuf_pop = 1'b1;
         bytenum_per_op_d = '0;
       end
