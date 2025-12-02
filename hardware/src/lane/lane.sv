@@ -503,24 +503,6 @@ module lane import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
   //  Vector Functional Units  //
   ///////////////////////////////
 
-  // gukai@20250523
-  // elen_t [2:0] mfpu_operand_vifmm;
-
-  // outlier_judge #(
-  //   .outlier_thd_static(ifmix_pkg::OLR_THD)    
-  // ) i_outlier_judge (
-  //   .clk_i                    ( clk_i               ),  
-  //   .rst_ni                   ( rst_ni                ),  
-  //   .flush_i                  ( flush_i               ),    
-  //   .conver_type_i            ( vifmm_cov_type ),    
-  //   .operand_i                ( mfpu_operand ),
-  //   .operand_valid_i          ( mfpu_operand_valid ),
-  //   .operand_o                ( mfpu_operand_vifmm ),
-  //   .transfer_pack_o          ( vifmm_transfer_pack   ),        
-  //   .transfer_pack_valid_o    ( )
-  // );
-
-
   // Reductions
   logic sldu_alu_gnt, sldu_mfpu_gnt;
   logic sldu_alu_valid, sldu_mfpu_valid;

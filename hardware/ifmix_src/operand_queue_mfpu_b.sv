@@ -547,13 +547,12 @@ module operand_queue_mfpu_b import ara_pkg::*; import rvv_pkg::*; import cf_math
         OpQueueReductionZExt:
           elem_count_d = elem_count_q + 1;
         OpQueueConversionF32I8: begin   // gukai@20250218, modify the number of operand B of MFPU
+          bytenum_per_op_d =  bytenum_per_op_q + 1;
           // From 8/4 operands to 2 operands
           if (transfer_all_quantize_en_i) begin
             elem_count_d = elem_count_q + 8; // 8 elements in a 64-bit packet
-            bytenum_per_op_d =  bytenum_per_op_q + 1;
           end else begin
             elem_count_d = elem_count_q + 2;
-            bytenum_per_op_d =  bytenum_per_op_q + 1;
           end
           
           elem_count_x8_o = (~(|elem_count_d[2:0])); // gukai@20250826

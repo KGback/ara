@@ -117,7 +117,14 @@ end : COMPENSATE else if (ElementWidth == EW8) begin : QUANTIZE
 
   assign result_o = (op_i == VIFMM) ? result_o_AQ_tmp0 : result_i;
   assign valid_o = valid_i;
-end: QUANTIZE
+end: QUANTIZE else begin
+  // EW64
+  assign result_o = result_i;
+  assign result1_o = '0;
+  assign result2_o = '0;
+  assign result3_o = '0;
+  assign valid_o = valid_i;
+end
 
 
 endmodule

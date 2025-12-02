@@ -268,9 +268,16 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
 
   // gukai@20250811
   logic [NrOperandQueues-1:0] vrf_vifmm_en;
-  vid_t                       vifmm_request_id;
+  vid_t [1:0]                 vifmm_request_id_d, vifmm_request_id_q;
   logic                       mfpu_write_vifmm_en;
   assign vrf_vifmm_en_o[1:0] =  {vrf_vifmm_en[4],vrf_vifmm_en[2]};
+  always_ff @(posedge clk_i or negedge rst_ni) begin
+    if (!rst_ni) begin
+      vifmm_request_id_q <= '0;
+    end else begin
+      vifmm_request_id_q <= vifmm_request_id_d;
+    end
+  end
 
   for (genvar requester_index = 0; requester_index < NrOperandQueues; requester_index++) begin : gen_operand_requester
     // State of this operand requester_index
@@ -358,6 +365,13 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
         default: '0
       };
       vrf_vifmm_en[requester_index] = '0; // gukai@20250811
+      if (requester_index == 2) begin
+        vifmm_request_id_d[0] = vifmm_request_id_q[0]; // gukai@20250817: record id of MUL_OPA for result writing back in 4 banks  
+      end
+      if (requester_index == 4) begin
+        vifmm_request_id_d[1] = vifmm_request_id_q[1]; // gukai@20250817: record id of MUL_OPC for result writing back in 4 banks  
+      end
+
       operand_queue_cmd_tmp = '{
         eew       : operand_request_i[requester_index].eew,
         elem_count: effective_vector_body_length,
@@ -435,6 +449,13 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
                 default: '0 // this is a read operation
               };
 
+              if (requester_index == 2) begin
+                vifmm_request_id_d[0] = requester_metadata_q.id; // gukai@20250817: for result writing back in 4 banks  
+              end
+              if (requester_index == 4) begin
+                vifmm_request_id_d[1] = requester_metadata_q.id; // gukai@20250817: for result writing back in 4 banks  
+              end
+
               if (|operand_requester_gnt) begin : op_req_grant_vifmm
                 // Bump the address pointer
                 requester_metadata_d.addr = requester_metadata_q.addr + 3'h4; // read each 4 banks
@@ -447,8 +468,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
                 else begin
                   requester_metadata_d.len = requester_metadata_q.len - num_elements;
                 end
-
-                vifmm_request_id = requester_metadata_q.id; // gukai@20250817: for result writing back in 4 banks
+                
               end : op_req_grant_vifmm
             end else begin
               // Operand request
@@ -567,7 +587,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
       wen    : 1'b1,
       wdata  : mfpu_result_wdata_i,
       be     : mfpu_result_be_i,
-      opqueue: (vifmm_request_id == mfpu_result_id_i) ?  VifmmRes: AluA,   //gukai@20250817
+      opqueue: ((vifmm_request_id_d[0] == mfpu_result_id_i)&&(vifmm_request_id_d[1] == mfpu_result_id_i)) ?  VifmmRes: AluA,   //gukai@20250817
       default: '0
     };
     operand_payload[NrOperandQueues + VFU_MaskUnit] = '{
@@ -600,7 +620,7 @@ module operand_requester import ara_pkg::*; import rvv_pkg::*; #(
     alu_result_req_i;
     ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]][VFU_MFpu] =
     mfpu_result_req_i;
-    if (vifmm_request_id == mfpu_result_id_i) begin
+    if ((vifmm_request_id_d[0] == mfpu_result_id_i)&&(vifmm_request_id_d[1] == mfpu_result_id_i)) begin
       ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+1][VFU_MFpu] = mfpu_result_req_i;
       ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+2][VFU_MFpu] = mfpu_result_req_i;
       ext_operand_req[mfpu_result_addr_i[idx_width(NrBanks)-1:0]+3][VFU_MFpu] = mfpu_result_req_i;

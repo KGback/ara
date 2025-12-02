@@ -35,7 +35,6 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     output logic       ready_o,
     input  logic       ready_i,
     output logic       valid_o,
-    input  logic       transfer_all_quantize_en_i, // gukai@20250626
     input  logic [3:0] [15:0]       transfer_data_i,  // gukai@20250524
     output elen_t [2:0]       result_vifmm_o  // gukai@20250816
   );
@@ -175,7 +174,6 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
 
       unique case (op)
         // Single-Width integer multiply instructions
-        VIFMM,   // gukai@20250303
         VMUL: for (int l = 0; l < 1; l++) result_tmp[0][64*l +: 64] = mul_res.w128[l][63:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
@@ -256,7 +254,6 @@ module simd_mul import ara_pkg::*; import rvv_pkg::*; import ifmix_pkg::*;#(
     always_comb begin : p_mul
       unique case (op)
         // Single-Width integer multiply instructions
-        VIFMM,   // gukai@20250303
         VMUL: for (int l = 0; l < 4; l++) result_tmp[0][16*l +: 16] = mul_res.w32[l][15:0];
         VSMUL: if (FixPtSupport == FixedPointEnable) begin
           unique case (vxrm)
@@ -334,7 +331,6 @@ PostU  #(
   .valid_i                    (valid_postu            ),
   .result_i                   (result_tmp         ),  
   .transfer_data_i            (transfer_data_i    ),        
-  // .transfer_all_quantize_en_i (transfer_all_quantize_en_i),
   .op_i                       (op     ),  
   .valid_o                    ( valid_o ),
   .result_o                   (result_o     ),

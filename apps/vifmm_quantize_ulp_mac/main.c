@@ -7,7 +7,7 @@
 #include <math.h>
 
 #include "printf.h"
-
+#include "runtime.h"
 #include "util.h"
 
 
@@ -17,9 +17,11 @@
 #define VEC_SIZE_1     16
 #define VEC_SIZE_2     16
 #define VEC_SIZE_3     1024
+#define VEC_SIZE_5     32
 #define GROUP_SIZE   64
 #define OLR_THD       2
 #define MAX_QUANTIZE  127
+#define GS 256
 
 extern float w[]         __attribute__((aligned(1 * NR_LANES), section(".data")));
 extern float x[]          __attribute__((aligned(4 * NR_LANES), section(".data")));
@@ -64,6 +66,366 @@ void compute( int8_t* w,  float* x_f,float* xinit, float* xp, int size) {
   asm volatile("vse32.v v0, (%0);" ::"r"(xp));
 
 }
+
+
+void quantize_GS(int8_t *qx, float *sf, float* x, int n) {
+  int num_groups = n / GS;
+  float Q_MAX = 127.0f;
+
+  for (int group = 0; group < num_groups; group++) {
+
+      // find the max absolute value in the current group
+      float wmax = 0.0;
+      for (int i = 0; i < GS; i++) {
+          float val = fabs(x[group * GS + i]);
+          if (val > wmax) {
+              wmax = val;
+          }
+      }
+
+      // calculate and write the scaling factor
+      float scale = wmax / Q_MAX;
+      sf[group] = scale;
+
+      // calculate and write the quantized values
+      for (int i = 0; i < GS; i++) {
+          float quant_value = x[group * GS + i] / scale; // scale
+          int8_t quantized = (int8_t) round(quant_value); // round and clamp
+          qx[group * GS + i] = quantized;
+      }
+  }
+}
+
+
+float vifbw_e32_m4( float* x, int8_t* w, int size) {
+  // W (d,n) * x (n,)   -> xout (d,)
+  // x^T(,n) * W^T(n,d) -> xout^T (,d)
+  unsigned long int block_size;
+  int8_t* w_  = w;
+  float* x_   = x;
+  float  sum;
+  unsigned long int block_size_max=65535;
+
+  asm volatile("vsetvli %0, %1, e32, m4, ta, ma" : "=r"(block_size) : "r"(size));
+  asm volatile("vmv.v.i v8,  0");
+  asm volatile("vmv.v.i v0,  0");
+
+  // printf("Available block_size=%d\n", block_size);
+
+  if (size <= block_size)
+  {
+      asm volatile("vle32.v v16, (%0);" ::"r"(x_));
+      asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(size));    
+      asm volatile("vle8.v v24, (%0);" ::"r"(w_));
+      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(size));    
+    #ifndef LLVM
+      asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
+    #else
+    //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
+      asm volatile("vifbw.vv v0, v16, v24");
+    #endif
+
+      
+  } else {
+  
+      for (unsigned long int m = 0; m < size; m += block_size) {
+        const unsigned long int p_ = MIN(size - m, block_size); 
+        asm volatile("vle32.v v16, (%0);" ::"r"(x_));
+        asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
+        asm volatile("vle8.v v24, (%0);" ::"r"(w_));
+        w_ += block_size;
+        x_ += block_size;
+        asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
+      #ifndef LLVM
+        asm volatile(".word 0xbb882057");   // gcc  vifbw v0, v16, v24
+      #else
+      //   asm volatile(".word 0xbb882057");    // llvm vifbw.vv v0, v16, v24
+        asm volatile("vifbw.vv v0, v16, v24");
+      #endif
+      }
+  }
+  asm volatile("vfredsum.vs v8, v0, v8");  // vredsum.vs vd, vs2,vs1; vd[0]=sum(vs1[0], vs2[*])
+  asm volatile("vfmv.f.s %0, v8;":"=f"(sum));
+  return sum;
+}
+
+float rvv_vwmul_e8_m1(int8_t* x,  int8_t* w, int n) {
+  // W (d,n) * x (n,)   -> xout (d,)
+  // x^T(,n) * W^T(n,d) -> xout^T (,d)
+  unsigned long int block_size_max=65535;
+  unsigned long int block_size;
+  int8_t* w_ = w;
+  int8_t* x_ = x;
+  int32_t sum;
+  float   xout;
+
+  // block_size is VLMAX
+  asm volatile("vsetvli %0, %1, e32, m4, ta, ma" : "=r"(block_size) : "r"(n));
+  asm volatile("vmv.v.i v4,  0");
+  asm volatile("vmv.v.i v0,  0");
+
+  // printf("block_size=%d\n", block_size);
+  if (n < block_size)
+  {
+      asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(n));    
+      // printf("p_=%d\n", p_);
+      asm volatile("vle8.v v16, (%0);" ::"r"(w_));
+      asm volatile("vle8.v v20, (%0);" ::"r"(x_));
+      asm volatile("fence");
+      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(n));       
+      asm volatile("vsext.vf4  v8, v16");
+      asm volatile("vsext.vf4 v12, v20");
+      asm volatile("vmacc.vv v0, v8, v12");
+  } else {
+  
+      for (unsigned long int m = 0; m < n; m += block_size) {
+
+          const unsigned long int p_ = MIN(n - m, block_size);
+          asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
+          // printf("p_=%d\n", p_);
+          asm volatile("vle8.v v16, (%0);" ::"r"(w_));
+          asm volatile("vle8.v v20, (%0);" ::"r"(x_));
+          asm volatile("fence");
+          asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));       
+          asm volatile("vsext.vf4  v8, v16");
+          asm volatile("vsext.vf4 v12, v20");
+          asm volatile("vmacc.vv v0, v8, v12");
+          w_ += block_size;
+          x_ += block_size;
+      }
+  }
+  asm volatile("vredsum.vs v4, v0, v4");  // vredsum.vs vd, vs2,vs1; vd[0]=sum(vs1[0], vs2[*])
+  asm volatile("vmv.x.s %0, v4;":"=r"(sum));
+  xout = (float) sum;
+
+  return xout;
+}
+
+float rvv_vfmul_e8_m1(float* x,  int8_t* w, int n) {
+  // W (d,n) * x (n,)   -> xout (d,)
+  // x^T(,n) * W^T(n,d) -> xout^T (,d)
+  unsigned long int block_size_max=65535;
+  unsigned long int block_size;
+  int8_t* w_ = w;
+  float* x_ = x;
+  float sum;
+  float   xout;
+
+  // block_size is VLMAX
+  asm volatile("vsetvli %0, %1, e32, m4, ta, ma" : "=r"(block_size) : "r"(block_size_max));
+  asm volatile("vmv.v.i v4,  0");
+  asm volatile("vmv.v.i v0,  0");
+
+  // printf("block_size=%d\n", block_size);
+  if (n < block_size)
+  {
+      asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(n));    
+      // printf("p_=%d\n", p_);
+      asm volatile("vle8.v v16, (%0);" ::"r"(w_));
+      asm volatile("vfcvt.f.x.v v24, v16;");
+      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(n));    
+      asm volatile("vle32.v v20, (%0);" ::"r"(x_));
+      asm volatile("fence");  
+      asm volatile("vfmacc.vv v0, v20, v24");
+  } else {
+  
+      for (unsigned long int m = 0; m < n; m += block_size) {
+
+          const unsigned long int p_ = MIN(n - m, block_size);
+          asm volatile("vsetvli zero, %0, e8, m1, ta, ma" ::"r"(p_));    
+          // printf("p_=%d\n", p_);
+          asm volatile("vle8.v v16, (%0);" ::"r"(w_));
+          asm volatile("vfcvt.f.x.v v24, v16;");
+          asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
+          asm volatile("vle32.v v20, (%0);" ::"r"(x_));
+          asm volatile("fence");  
+          asm volatile("vfmacc.vv v0, v20, v24");
+          w_ += block_size;
+          x_ += block_size;
+      }
+  }
+  asm volatile("vfredsum.vs v4, v0, v4");  // vredsum.vs vd, vs2,vs1; vd[0]=sum(vs1[0], vs2[*])
+  asm volatile("vfmv.f.s %0, v4;":"=f"(sum));
+  xout = sum;
+
+  return xout;
+}
+
+float rvv_vfmacc_e8_m1(float* x,  float* w, int n) {
+  // W (d,n) * x (n,)   -> xout (d,)
+  // x^T(,n) * W^T(n,d) -> xout^T (,d)
+  unsigned long int block_size_max=65535;
+  unsigned long int block_size;
+  float* w_ = w;
+  float* x_ = x;
+  float sum;
+  float   xout;
+
+  // block_size is VLMAX
+  asm volatile("vsetvli %0, %1, e32, m4, ta, ma" : "=r"(block_size) : "r"(n));
+  asm volatile("vmv.v.i v4,  0");
+  asm volatile("vmv.v.i v0,  0");
+
+  // printf("block_size=%d\n", block_size);
+  if (n < block_size)
+  {
+      asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(n));    
+      asm volatile("vle32.v v24, (%0);" ::"r"(w_));
+      asm volatile("vle32.v v20, (%0);" ::"r"(x_));
+      asm volatile("fence");  
+      asm volatile("vfmacc.vv v0, v20, v24");
+  } else {
+  
+      for (unsigned long int m = 0; m < n; m += block_size) {
+
+          const unsigned long int p_ = MIN(n - m, block_size);
+          asm volatile("vsetvli zero, %0, e32, m4, ta, ma" ::"r"(p_));    
+          asm volatile("vle32.v v24, (%0);" ::"r"(w_));
+          asm volatile("vle32.v v20, (%0);" ::"r"(x_));
+          asm volatile("fence");  
+          asm volatile("vfmacc.vv v0, v20, v24");
+          w_ += block_size;
+          x_ += block_size;
+      }
+  }
+  asm volatile("vfredsum.vs v4, v0, v4");  // vredsum.vs vd, vs2,vs1; vd[0]=sum(vs1[0], vs2[*])
+  asm volatile("vfmv.f.s %0, v4;":"=f"(sum));
+  xout = sum;
+
+  return xout;
+}
+
+
+void matmul(float* xout, float* x, float* w, int n, int d) {
+  // W (d,n) @ x (n,) -> xout (d,)
+  // by far the most amount of time is spent inside this little function
+  int i;
+
+  for (i = 0; i < d; i++) {
+      float val = 0.0f;
+      for (int j = 0; j < n; j++) {
+          val   += w[i * n + j] * x[j];
+      }
+      xout[i] = val;
+  }
+}
+void matmul_fpu(float* xout, float *x, float *w, int n, int d) {
+    // W (d,n) @ x (n,) -> xout (d,)
+    // by far the most amount of time is spent inside this little function
+    // inputs to this function are both quantized
+  
+    int i;
+    for (i = 0; i < d; i++) {
+  
+        float val = 0.0f;
+        float fval = 0.0f;
+        int in = i * n;
+  
+        // do the matmul in groups of GS
+        int j;
+        for (j = 0; j <= n - GS; j += GS) {
+            fval = rvv_vfmacc_e8_m1(&x[j], &w[in + j], GS);
+            val +=  fval;  // TODO: need scale factor of weight
+        }
+        xout[i] = val;
+    }
+  }
+// void matmul_fpu(float* xout, float *x, int8_t *w, int n, int d) {
+//   // W (d,n) @ x (n,) -> xout (d,)
+//   // by far the most amount of time is spent inside this little function
+//   // inputs to this function are both quantized
+// 
+//   int i;
+//   for (i = 0; i < d; i++) {
+// 
+//       float val = 0.0f;
+//       float fval = 0.0f;
+//       int in = i * n;
+// 
+//       // do the matmul in groups of GS
+//       int j;
+//       for (j = 0; j <= n - GS; j += GS) {
+//           fval = rvv_vfmul_e8_m1(&x[j], &w[in + j], GS);
+//           val +=  fval;  // TODO: need scale factor of weight
+//       }
+//       xout[i] = val;
+//   }
+// }
+
+void matmul_Q_VIFMM(float* xout, float* x, int8_t *w, int n, int d) {
+  // W (d,n) @ x (n,) -> xout (d,)
+  // by far the most amount of time is spent inside this little function
+  // inputs to this function are both quantized
+
+  int i;
+  for (i = 0; i < d; i++) {
+
+      float val = 0.0f;
+      float fval = 0;
+      int in = i * n;
+
+      // do the matmul in groups of GS
+      int j;
+      for (j = 0; j <= n - GS; j += GS) {
+          fval = vifbw_e32_m4(&x[j], &w[in + j], GS);
+          val +=  fval; // TODO: need scale factor of weight
+      }
+
+      xout[i] = val;
+  }
+}
+
+void matmul_Q_RVV(float* xout, int8_t *x, int8_t *w, float *sf, int n, int d) {
+  // W (d,n) @ x (n,) -> xout (d,)
+  // by far the most amount of time is spent inside this little function
+  // inputs to this function are both quantized
+
+  int i;
+  for (i = 0; i < d; i++) {
+
+      float val = 0.0f;
+      float fval = 0.0f;
+      int in = i * n;
+
+      // do the matmul in groups of GS
+      int j;
+      for (j = 0; j <= n - GS; j += GS) {
+          fval = rvv_vwmul_e8_m1(&x[j], &w[in + j], GS);
+          val +=  fval * sf[j / GS];
+          fval = 0;
+      }
+      xout[i] = val;
+  }
+}
+
+void matmul_Q(float* xout, int8_t *x, int8_t *w, float *sf, int n, int d) {
+  // W (d,n) @ x (n,) -> xout (d,)
+  // by far the most amount of time is spent inside this little function
+  // inputs to this function are both quantized
+
+  int i;
+
+  for (i = 0; i < d; i++) {
+
+      float val = 0.0f;
+      int32_t ival = 0;
+      int in = i * n;
+
+      // do the matmul in groups of GS
+      int j;
+      for (j = 0; j <= n - GS; j += GS) {
+          for (int k = 0; k < GS; k++) {
+              ival += ((int32_t) x[j + k]) * ((int32_t) w[in + j + k]);
+          }
+          val += ((float) ival) * sf[j / GS];
+          ival = 0;
+      }
+
+      xout[i] = val;
+  }
+}
+
+
 // fp * 1
 int test0() {
   //   int8_t  w_int8[VEC_SIZE_0]={0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
@@ -252,7 +614,93 @@ int test3(float* x_fp32, int8_t* w_int8) {
     return 1;
 }
 
+long time_in_ns() {
+  uint64_t cycles,time;
+  cycles  = get_cycle_count();
+  time    = cycles  ;  // 1GHz 1ns/cycle
+  return time ;  // ms
+}
 
+
+int test5(float* x_fp32, int8_t* w_int8) {
+  
+  long start = 0;
+  long end = 0;
+  float res_rvv[VEC_SIZE_5];
+  float res_vifmm[VEC_SIZE_5];
+  float res_fp32[VEC_SIZE_5];
+  float res_int8[VEC_SIZE_5];
+  float w_fp32[VEC_SIZE_5*GS];
+  int8_t qx[VEC_SIZE_5*GS];
+  float scale[VEC_SIZE_5];
+
+  float threshold = 10.0;
+
+  
+  for (int i = 0; i < VEC_SIZE_5*GS; i++)
+  {
+    w_fp32[i] = (float) w_int8[i];
+  }
+  start = time_in_ns();
+  matmul_fpu(res_fp32, x_fp32, w_fp32, GS, VEC_SIZE_5);
+  end = time_in_ns();
+  printf( "FPU Time used: %f ns\r\n", (double)(end-start));
+  
+  start = time_in_ns();
+  matmul_Q_VIFMM(res_vifmm, x_fp32, w_int8, GS, VEC_SIZE_5);
+  end = time_in_ns();
+  printf( "VIFMM Time used: %f ns\r\n", (double)(end-start));
+  printf("VIFMM ULP:");
+  for (int i = 0; i < VEC_SIZE_5; i++)
+  {
+    printf(" %d \t", float_ulp_distance(res_vifmm[i], res_fp32[i]));
+  }
+  printf("\n");
+
+  start = time_in_ns();
+  quantize_GS(qx, scale, x_fp32, VEC_SIZE_5*GS);
+  matmul_Q_RVV(res_rvv, qx, w_int8, scale, GS, VEC_SIZE_5);
+  end = time_in_ns();
+  printf( "VMACC Time used: %f ns\r\n", (double)(end-start));
+  printf("X FP32 TO INT8 ULP:");
+    for (int i = 0; i < VEC_SIZE_5; i++)
+    {
+      printf(" %d \t", float_ulp_distance(res_rvv[i], res_fp32[i]));
+    }
+    printf("\n");
+
+
+
+  // printf("FP32 RES:");
+  // for (int i = 0; i < VEC_SIZE_5; i++)
+  // {
+  //   printf(" %f \t", res_fp32[i]);
+  // }
+  // printf("\n");
+  // printf("VIFMM RES:");
+  // for (int i = 0; i < VEC_SIZE_5; i++)
+  // {
+  //   printf(" %f \t", res_vifmm[i]);
+  // }
+  // printf("\n");
+  // printf("RVV RES:");
+  // for (int i = 0; i < VEC_SIZE_5; i++)
+  // {
+  //   printf(" %f \t", res_rvv[i]);
+  // }
+  // printf("\n");
+//
+  //matmul_Q(res_int8, qx, w_int8, scale, GS, VEC_SIZE_5);  
+  //printf("INT8 RES:");
+  //for (int i = 0; i < VEC_SIZE_5; i++)
+  //{
+  //  printf(" %f \t", res_int8[i]);
+  //}
+  //printf("\n");
+  
+    
+  return 1;
+}
 
 int main() {
     printf("CPU PRINT!\n");
@@ -275,11 +723,18 @@ int main() {
     // test2();
     // 
 
-    if (test3(x, qw))
+    // if (test3(x, qw))
+    // {
+    //   printf("TEST3: PASS\n");
+    // } else {
+    //   printf("TEST3: FAILED\n");
+    // }
+
+    if (test5(x, qw))
     {
-      printf("TEST3: PASS\n");
+      printf("TEST5: PASS\n");
     } else {
-      printf("TEST3: FAILED\n");
+      printf("TEST5: FAILED\n");
     }
     
     return 0;

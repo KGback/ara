@@ -149,7 +149,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
   //  Result queue  //
   ////////////////////
 
-  localparam int unsigned ResultQueueDepth = 4;  //gukai@20250808: 2 -> 4
+  localparam int unsigned ResultQueueDepth = 2;
 
   // There is a result queue per VFU, holding the results that were not
   // yet accepted by the corresponding lane.
@@ -565,8 +565,8 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
   end
 
   // gukai@20250826
-  logic [2:0] state_vifmm_issue_d,state_vifmm_issue_q;
-  logic [2:0] state_vifmm_processing_d,state_vifmm_processing_q;
+  logic [1:0] state_vifmm_issue_d,state_vifmm_issue_q;
+  logic [1:0] state_vifmm_processing_d,state_vifmm_processing_q;
   always_ff @(posedge clk_i or negedge rst_ni) begin
     if (!rst_ni) begin
       issue_sew_q             <= EW8;
@@ -592,7 +592,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     state_vifmm_issue_d = vinsn_issue_q_valid ? state_vifmm_issue_q: EW8;
     if (vinsn_queue_q.vinsn[vinsn_queue_q.issue_pnt].op == VIFMM && operands_valid) begin
       case (state_vifmm_issue_q)
-      3'h0: begin  // EW8 and EW32
+      2'h0: begin  // EW8 and EW32
           if (issue_sew_d == EW8) begin
             vinsn_issue_q.vtype.vsew = EW8; // EW8 all quantize, no delay
             state_vifmm_issue_d = 2'h0;    // EW8 -> EW8
@@ -601,7 +601,7 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             state_vifmm_issue_d = 2'h1;  
           end 
         end 
-      3'h1: begin  // EW32 at least 4 cycles
+      2'h1: begin  // EW32 at least 4 cycles
           vinsn_issue_q.vtype.vsew = EW32; 
           if (issue_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay two cycles, wait First cycle
             vinsn_issue_q.vtype.vsew = EW8; 
@@ -610,18 +610,18 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
             state_vifmm_issue_d = 2'h1;  // EW32 -> EW32
           end
         end
-      3'h2: begin  // EW32 -> EW8 all quantize, wait second cycle, for SIMD32 result of simd_mul, operand_ready asserted
-        vinsn_issue_q.vtype.vsew = EW8; 
-        state_vifmm_issue_d = 2'h3; 
-      end
-      3'h3: begin  // EW32 -> EW8 all quantize, second cycle
-        vinsn_issue_q.vtype.vsew = EW8;
-        if (issue_sew_d == EW8) begin
-          state_vifmm_issue_d = 2'h0;    // EW8 -> EW8
-        end else begin
-          state_vifmm_issue_d = 2'h1;    // EW8 -> EW32
-        end 
-      end
+      // 3'h2: begin  // EW32 -> EW8 all quantize, wait second cycle, for SIMD32 result of simd_mul, operand_ready asserted
+      //   vinsn_issue_q.vtype.vsew = EW8; 
+      //   state_vifmm_issue_d = 2'h3; 
+      // end
+      // 3'h3: begin  // EW32 -> EW8 all quantize, second cycle
+      //   vinsn_issue_q.vtype.vsew = EW8;
+      //   if (issue_sew_d == EW8) begin
+      //     state_vifmm_issue_d = 2'h0;    // EW8 -> EW8
+      //   end else begin
+      //     state_vifmm_issue_d = 2'h1;    // EW8 -> EW32
+      //   end 
+      // end
 
         default: ;
       endcase  
@@ -633,190 +633,50 @@ module vmfpu import ara_pkg::*; import rvv_pkg::*; import fpnew_pkg::*;
     
     if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && ( (|vmul_simd_in_valid_q[3:0]) | (|vmul_simd_out_valid[3:0]))) begin
       case (state_vifmm_processing_q)
-        3'h0: begin  // EW8
+        2'h0: begin  // EW8
           if (processing_sew_q == EW8) begin
             vinsn_processing_q.vtype.vsew = EW8; // EW8 all quantize, no delay
-            state_vifmm_processing_d = 3'h4;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
+            state_vifmm_processing_d = 2'h2;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
           end else begin
             vinsn_processing_q.vtype.vsew = EW32; 
             state_vifmm_processing_d = 2'h1;  
           end
         end 
-        3'h1: begin  // EW32
+        2'h1: begin  // EW32
           vinsn_processing_q.vtype.vsew = EW32; 
           if (processing_sew_q == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
-            state_vifmm_processing_d = 3'h4; 
-          end else begin
-            state_vifmm_processing_d = 2'h1;  // EW32 -> EW32
-          end
-        end
-        3'h2: begin  // EW32 -> EW8 all quantize, first cycle, wait the result of SIMD32
-          vinsn_processing_q.vtype.vsew = EW32; 
-          state_vifmm_processing_d = 3'h4;
-        end
-        3'h3: begin  // EW8 all quantize, keep second cycle, 
-          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-          vinsn_processing_q.vtype.vsew = EW8;
-          state_vifmm_processing_d = 3'h4;
-        end
-        3'h4: begin  // EW8 all quantize, keep second cycle, 
-          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-          vinsn_processing_q.vtype.vsew = EW8;
-          if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
-            state_vifmm_processing_d = 3'h4; 
-          end else begin
-            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
-          end
-        end
-        3'h5: begin  // EW8 all quantize, keep second cycle, 
-          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-          vinsn_processing_q.vtype.vsew = EW8;
-          if (processing_sew_d == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
-            state_vifmm_processing_d = 3'h4; 
-          end else begin
-            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
-          end
-        end
-            default: ;
-      endcase
-    end
-//    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && ( operands_valid | (|vmul_simd_in_valid_q[3:0])|(|vmul_simd_out_valid[3:0]))) begin
-//      case (state_vifmm_processing_q)
-//        3'h0: begin  // EW8
-//          if (processing_sew_d == EW8) begin
-//            vinsn_processing_q.vtype.vsew = EW8; // EW8 all quantize, no delay
-//            state_vifmm_processing_d = 2'h3;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
-//          end else begin
-//            vinsn_processing_q.vtype.vsew = EW32; 
-//            state_vifmm_processing_d = 2'h1;  
-//          end
-//        end 
-//        3'h1: begin  // EW32
-//          vinsn_processing_q.vtype.vsew = EW32; 
-//          if (processing_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
-//            state_vifmm_processing_d = 2'h2; 
-//          end else begin
-//            state_vifmm_processing_d = 2'h1;  // EW32 -> EW32
-//          end
-//        end
-//        3'h2: begin  // EW32 -> EW8 all quantize, first cycle, wait the result of SIMD32
-//          vinsn_processing_q.vtype.vsew = EW32; 
-//          state_vifmm_processing_d = 3'h4;
-//        end
-//        3'h3: begin  // EW8 all quantize, keep second cycle, 
-//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-//          vinsn_processing_q.vtype.vsew = EW8;
-//          state_vifmm_processing_d = 3'h4;
-//        end
-//        3'h4: begin  // EW8 all quantize, keep second cycle, 
-//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-//          vinsn_processing_q.vtype.vsew = EW8;
-//          if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
-//            state_vifmm_processing_d = 3'h4; 
-//          end else begin
-//            state_vifmm_processing_d = 2'h0;  // EW8 -> EW32
-//          end
-//        end
-//        3'h5: begin  // EW8 all quantize, keep second cycle, 
-//          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-//          vinsn_processing_q.vtype.vsew = EW8;
-//          if (processing_sew_d == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
-//            state_vifmm_processing_d = 3'h4; 
-//          end else begin
-//            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
-//          end
-//        end
-//            default: ;
-//      endcase
-//    end
-
-/*
-    vifmm_stall              = '0;
-
-    state_vifmm_issue_d = vinsn_issue_q_valid ? state_vifmm_issue_q: EW8;
-    if (vinsn_queue_q.vinsn[vinsn_queue_q.issue_pnt].op == VIFMM && operands_valid) begin
-      case (state_vifmm_issue_q)
-      3'h0: begin  // EW8 and EW32
-          if (issue_sew_d == EW8) begin
-            vinsn_issue_q.vtype.vsew = EW8; // EW8 all quantize, no delay
-            state_vifmm_issue_d = 2'h0;    // EW8 -> EW8
-          end else begin
-            vinsn_issue_q.vtype.vsew = EW32; 
-            state_vifmm_issue_d = 2'h1;  
-          end 
-        end 
-      3'h1: begin  // EW32 at least 4 cycles
-          vinsn_issue_q.vtype.vsew = EW32; 
-          if (issue_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay two cycles, wait First cycle
-            vinsn_issue_q.vtype.vsew = EW8; 
-            state_vifmm_issue_d = 2'h2; 
-            vifmm_stall              = 1'b1;       // wait for SIMD32 result of simd_mul 
-          end else begin
-            state_vifmm_issue_d = 2'h1;  // EW32 -> EW32
-          end
-        end
-      3'h2: begin  // EW32 -> EW8 all quantize, wait second cycle, for SIMD32 result of simd_mul, operand_ready asserted
-        vinsn_issue_q.vtype.vsew = EW8; 
-        state_vifmm_issue_d = 2'h3; 
-      end
-      3'h3: begin  // EW32 -> EW8 all quantize, second cycle
-        vinsn_issue_q.vtype.vsew = EW8;
-        if (issue_sew_d == EW8) begin
-          state_vifmm_issue_d = 2'h0;    // EW8 -> EW8
-        end else begin
-          state_vifmm_issue_d = 2'h1;    // EW8 -> EW32
-        end 
-      end
-
-        default: ;
-      endcase  
-    end
-    
-    state_vifmm_processing_d = vinsn_processing_q_valid ? state_vifmm_processing_d: EW8;
-    transfer_data_ew8        = transfer_data_ff1;
-    transfer_data_ew32       = transfer_data_ff2;
-
-    if (vinsn_queue_q.vinsn[vinsn_queue_q.processing_pnt].op == VIFMM && (operands_valid|(|vmul_simd_out_valid[3:0]))) begin
-      case (state_vifmm_processing_q)
-        3'h0: begin  // EW8
-          if (processing_sew_d == EW8) begin
-            vinsn_processing_q.vtype.vsew = EW8; // EW8 all quantize, no delay
-            state_vifmm_processing_d = 2'h3;    // EW8 -> EW8, need one more cycle to wait for SIMD8 result of simd_mul
-          end else begin
-            vinsn_processing_q.vtype.vsew = EW32; 
-            state_vifmm_processing_d = 2'h1;  
-          end
-        end 
-        3'h1: begin  // EW32
-          vinsn_processing_q.vtype.vsew = EW32; 
-          if (processing_sew_d == EW8) begin  // EW32 -> EW8 all quantize, delay one cycle
             state_vifmm_processing_d = 2'h2; 
           end else begin
             state_vifmm_processing_d = 2'h1;  // EW32 -> EW32
           end
         end
-        3'h2: begin  // EW32 -> EW8 all quantize, first cycle
-          vinsn_processing_q.vtype.vsew = EW32; 
-          state_vifmm_processing_d = 3'h3; 
-        end
-        3'h3: begin  // EW8 all quantize, keep second cycle, 
+        2'h2: begin  // EW8 all quantize, keep second cycle, 
           // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
           vinsn_processing_q.vtype.vsew = EW8;
-          state_vifmm_processing_d = 2'h0;
+          if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
+            state_vifmm_processing_d = 2'h2; 
+          end else begin
+            state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
+          end
         end
-        3'h4: begin  // EW32 -> EW8 all quantize, keep second cycle, wait
-          // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
-          vinsn_processing_q.vtype.vsew = EW8;
-          state_vifmm_processing_d = 2'b00;
-          // operand of SIMD8 is delayed by one cycle, so need to swap the transfer_data
-          transfer_data_ew8        = transfer_data_ff2;
-          // 
-          transfer_data_ew32       = transfer_data_ff1;
-        end
+        // 2'h3: begin  // EW8 all quantize, keep second cycle, 
+        //   // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
+        //   vinsn_processing_q.vtype.vsew = EW8;
+        //   state_vifmm_processing_d = 2'h2;
+        // end
+        // 3'h4: begin  // EW8 all quantize, keep second cycle, 
+        //   // for operands of SIMD_MUL is valid at next cycle once operands_valid is asserting by vinsn_issue_q.vtype.vsew
+        //   vinsn_processing_q.vtype.vsew = EW8;
+        //   if (processing_sew_q == EW8) begin  // EW8 -> EW8 all quantize, delay one cycle
+        //     state_vifmm_processing_d = 3'h4; 
+        //   end else begin
+        //     state_vifmm_processing_d = 2'h1;  // EW8 -> EW32
+        //   end
+        // end
             default: ;
       endcase
     end
-*/
+
     vinsn_commit       = vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt];
     commit_sew_d        = commit_sew_q;
     if (vinsn_queue_q.vinsn[vinsn_queue_q.commit_pnt].op == VIFMM && operands_valid) begin
